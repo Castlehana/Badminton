@@ -1,4 +1,4 @@
-
+//using System.Diagnostics;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
@@ -21,27 +21,37 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody rb;
     private Collider col;
-    private Vector3 moveInput;
-    private float verticalVelocity;  // 수동 중력을 위한 Y속도
+    private Vector3 moveInput = Vector3.zero;
+    private float verticalVelocity;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
-        rb.useGravity = false;   // 내장 중력 끔
+        rb.useGravity = false;
+    }
+
+    // 외부(아두이노)에서 이동 입력을 설정
+    public void SetMoveInput(Vector2 input)
+    {
+        moveInput = new Vector3(input.x, 0f, input.y).normalized;
+    }
+
+    // 외부(아두이노)에서 점프 요청
+    public void Jump()
+    {
+        if (IsGrounded())
+        {
+            verticalVelocity = jumpForce;
+        }
     }
 
     void Update()
     {
-        // 이동 입력
-        float h = Input.GetAxisRaw("Horizontal");
-        float v = Input.GetAxisRaw("Vertical");
-        moveInput = new Vector3(h, 0f, v).normalized;
-
-        // 점프 입력
-        if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
+        // 키보드로도 점프 가능 (선택 사항)
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            verticalVelocity = jumpForce;  // 수동으로 Y속도 설정
+            Jump();
         }
     }
 
@@ -50,16 +60,13 @@ public class PlayerMovement : MonoBehaviour
         float dt = Time.fixedDeltaTime;
         bool grounded = IsGrounded();
 
-        // 땅에 닿아 있고 아래로 향하는 속도면 Y속도 리셋
         if (grounded && verticalVelocity < 0f)
         {
             verticalVelocity = 0f;
         }
 
-        // 수동 중력 적용
         verticalVelocity += gravity * dt;
 
-        // 최종 속도 계산
         Vector3 velocity = new Vector3(
             moveInput.x * moveSpeed,
             verticalVelocity,
@@ -73,7 +80,6 @@ public class PlayerMovement : MonoBehaviour
     {
         Vector3 origin = transform.position;
         float rayLength = col.bounds.extents.y + groundCheckDistance;
-
         Debug.DrawRay(origin, Vector3.down * rayLength, Color.red);
         return Physics.Raycast(origin, Vector3.down, rayLength, groundLayer);
     }

@@ -12,6 +12,9 @@ public class PlayerShooting : MonoBehaviour
     public float testPitch = 45f;
     public float testForce = 50f;
 
+   
+
+
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) Clear();
@@ -66,12 +69,12 @@ public class PlayerShooting : MonoBehaviour
         shuttlecocksInRange.Clear();
     }
 
-    void Clear() => LaunchToAll(0f, 45f, 35f, "클리어");
-    void Drop() => LaunchToAll(0f, 60f, 15f, "드롭");
-    void Smash() => LaunchToAll(0f, -5f, 40f, "스매시");
-    void Push() => LaunchToAll(0f, -40f, 40f, "푸시");
-    void Hairpin() => LaunchToAll(0f, 60f, 9f, "헤어핀");
-    void Drive() => LaunchToAll(0f, 10f, 25f, "드라이브");
+    public void Clear() => LaunchToAll(0f, 45f, 35f, "클리어");
+    public void Drop() => LaunchToAll(0f, 60f, 15f, "드롭");
+    public void Smash() => LaunchToAll(0f, -5f, 40f, "스매시");
+    public void Push() => LaunchToAll(0f, -40f, 40f, "푸시");
+    public void Hairpin() => LaunchToAll(0f, 60f, 9f, "헤어핀");
+    public void Drive() => LaunchToAll(0f, 10f, 25f, "드라이브");
 
     void OnTriggerEnter(Collider other)
     {
@@ -79,7 +82,7 @@ public class PlayerShooting : MonoBehaviour
         if (sc != null && !shuttlecocksInRange.Contains(sc))
         {
             shuttlecocksInRange.Add(sc);
-            Debug.Log($"셔틀콕 감지됨: {sc.name} 트리거 안에 들어옴");
+            //Debug.Log($"셔틀콕 감지됨: {sc.name} 트리거 안에 들어옴");
         }
     }
 
@@ -89,7 +92,7 @@ public class PlayerShooting : MonoBehaviour
         if (sc != null && shuttlecocksInRange.Contains(sc))
         {
             shuttlecocksInRange.Remove(sc);
-            Debug.Log($"셔틀콕 나감: {sc.name} 트리거 밖으로 나감");
+            //Debug.Log($"셔틀콕 나감: {sc.name} 트리거 밖으로 나감");
         }
     }
 }
