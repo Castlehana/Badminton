@@ -1,5 +1,4 @@
-﻿//using System.Diagnostics;
-using UnityEngine;
+﻿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
 public class Shuttlecock : MonoBehaviour
@@ -19,7 +18,7 @@ public class Shuttlecock : MonoBehaviour
     [Header("생존 시간")]
     public float lifeTime = 10f;
 
-    [Header("예상 낙하 지점 표시용 프리팹")]
+    [Header("예상 낙하 지점 표시용 프리팹 (Goal)")]
     public GameObject landingMarkerPrefab;
 
     private GameObject landingMarkerInstance;
@@ -49,14 +48,11 @@ public class Shuttlecock : MonoBehaviour
         // 셔틀콕 제거 예약
         Destroy(gameObject, lifeTime);
 
-        // 낙하 마커도 함께 제거
+        // 낙하 마커도 함께 제거 (개별 인스턴스를 썼을 때만)
         if (landingMarkerInstance != null)
             Destroy(landingMarkerInstance, lifeTime);
     }
 
-    /// <summary>
-    /// 지정한 방향과 힘으로 셔틀콕 발사
-    /// </summary>
     public void Launch(float yaw, float pitch, float force)
     {
         Quaternion rot = Quaternion.Euler(-pitch, yaw, 0f);
@@ -67,16 +63,25 @@ public class Shuttlecock : MonoBehaviour
         Vector3 landingPos = PredictLandingPoint(yaw, pitch, force);
         Debug.Log($"예상 낙하 지점: {landingPos}");
 
-        // 마커 생성
-        if (landingMarkerPrefab != null)
+        // Goal 재사용 또는 생성
+        GameObject goalObj = GameObject.FindGameObjectWithTag("Goal");
+        if (goalObj != null)
         {
+            // 이미 있으면 위치만 갱신
+            goalObj.transform.position = landingPos;
+            landingMarkerInstance = null; // 공유 Goal을 쓰는 경우 개별 파괴 예약 안 함
+        }
+        else if (landingMarkerPrefab != null)
+        {
+            // 없으면 새로 생성
             landingMarkerInstance = Instantiate(landingMarkerPrefab, landingPos, Quaternion.identity);
+
+            // 프리팹 태그 미설정 대비
+            if (!landingMarkerInstance.CompareTag("Goal"))
+                landingMarkerInstance.tag = "Goal";
         }
     }
 
-    /// <summary>
-    /// 공중 궤적을 시뮬레이션하여 y=0 도달 위치 예측
-    /// </summary>
     private Vector3 PredictLandingPoint(float yaw, float pitch, float force)
     {
         Quaternion rot = Quaternion.Euler(-pitch, yaw, 0f);
@@ -89,25 +94,19 @@ public class Shuttlecock : MonoBehaviour
 
         for (int i = 0; i < maxSteps; i++)
         {
-            // 중력 적용
             velocity.y += gravity * dt;
 
-            // 항력 적용
             Vector3 dragAccel = -dragCoefficient * velocity.magnitude * velocity;
             velocity += dragAccel * dt;
 
-            // 위치 갱신
             position += velocity * dt;
 
-            // y=0 이하로 내려오면 종료
             if (position.y <= groundY)
             {
                 position.y = groundY;
                 return position;
             }
         }
-
-        // 너무 오래 걸릴 경우 마지막 위치 반환
         return position;
     }
 
@@ -116,25 +115,30 @@ public class Shuttlecock : MonoBehaviour
         float dt = Time.fixedDeltaTime;
         Vector3 v = rb.velocity;
 
-        // 중력 적용
         v.y += gravity * dt;
 
-        // 항력 적용
         Vector3 dragAccel = -dragCoefficient * v.magnitude * v;
         v += dragAccel * dt;
 
-        // 결과 속도 반영
         rb.velocity = v;
     }
 
     void OnCollisionEnter(Collision collision)
     {
-        // Player의 SphereCollider에만 반응
         if (collision.gameObject.CompareTag("Player")
             && collision.collider is SphereCollider)
         {
             Debug.Log($"Player SphereCollider 충돌: {collision.collider.name}");
-            // 충돌 처리 로직 추가 가능
+        }
+    }
+
+    // 셔틀콕이 삭제될 때 Goal 오브젝트도 삭제 (공유 Goal을 계속 유지하고 싶다면 이 메서드를 제거하세요)
+    void OnDestroy()
+    {
+        GameObject goalObj = GameObject.FindGameObjectWithTag("Goal");
+        if (goalObj != null)
+        {
+            Destroy(goalObj);
         }
     }
 }

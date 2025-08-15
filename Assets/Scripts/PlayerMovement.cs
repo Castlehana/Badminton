@@ -1,4 +1,3 @@
-//using System.Diagnostics;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
@@ -48,7 +47,18 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // 키보드로도 점프 가능 (선택 사항)
+        // 키보드 이동 입력 (테스트용): 있으면 '우선순위 높게' 외부 입력을 덮어쓴다.
+        float horizontal = Input.GetAxis("Horizontal");
+        float vertical = Input.GetAxis("Vertical");
+        Vector2 keyboardInput = new Vector2(horizontal, vertical);
+
+        if (keyboardInput.magnitude > 0.1f)
+        {
+            SetMoveInput(keyboardInput);
+        }
+        // else: 키보드 입력이 없을 땐 외부 입력을 유지 (아무 것도 하지 않음)
+
+        // 키보드 점프 입력(테스트용)
         if (Input.GetKeyDown(KeyCode.Space))
         {
             Jump();
