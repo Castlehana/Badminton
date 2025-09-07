@@ -70,39 +70,68 @@ public class ArduinoReceiver : MonoBehaviour
 
     void Update()
     {
+        // 스윙 처리
         if (!string.IsNullOrEmpty(latestSwingData))
         {
-            Debug.Log($"스윙 동작 감지: {latestSwingData}");
-            latestSwingData = "";
+            string msg = latestSwingData;
+            latestSwingData = ""; // 다음 입력을 위해 비움
+
+            //Debug.Log($"스윙 동작 감지: {msg}");
+
+            // "SWING:" 뒤 부분만 추출
+            string command = msg.Substring(6).Trim().ToUpper();
+
+            if (shooter != null)
+            {
+                switch (command)
+                {
+                    case "CLEAR":
+                        shooter.Clear();    // 스윙은 CLEAR만 실행
+                        break;
+
+                        // 나머지 스윙 동작은 주석 처리
+                        /*
+                        case "DROP":
+                            shooter.Drop();
+                            break;
+                        case "SMASH":
+                            shooter.Smash();
+                            break;
+                        case "PUSH":
+                            shooter.Push();
+                            break;
+                        case "HAIRPIN":
+                            shooter.Hairpin();
+                            break;
+                        case "DRIVE":
+                            shooter.Drive();
+                            break;
+                        default:
+                            Debug.Log($"알 수 없는 SWING 명령: {command}");
+                            break;
+                        */
+                }
+            }
         }
 
+        // 점프 처리
         if (jumpRequested && playerMovement != null)
         {
-            playerMovement.Jump();
+            playerMovement.Jump();   // JUMP는 그대로 실행
             jumpRequested = false;
         }
 
+        // 이동 처리
         if (playerMovement != null)
         {
-            // 아두이노에서 받은 조이스틱 값을 -127~127 범위에서 -1~1 범위로 정규화
             float normalizedX = latestMoveInput.x / 127f;
             float normalizedY = latestMoveInput.y / 127f;
 
-            // ⚠️ 여기서 Y축 방향이 반전될 수 있습니다. 닌텐도 눈차크는 종종 Y축이 반대입니다.
-            // 만약 캐릭터가 조이스틱을 앞으로 밀었을 때 뒤로 간다면, 아래 코드를 사용하세요.
-            // float normalizedY = -latestMoveInput.y / 127f;
-
-            // 정규화된 값을 PlayerMovement에 전달하기 전에 충분히 큰 값인지 확인
-            // 캐릭터가 움직이기 위한 최소 입력 값 (예: 0.1f)
             float threshold = 0.1f;
             if (Mathf.Abs(normalizedX) < threshold && Mathf.Abs(normalizedY) < threshold)
-            {
                 playerMovement.SetMoveInput(Vector2.zero);
-            }
             else
-            {
                 playerMovement.SetMoveInput(new Vector2(normalizedX, normalizedY));
-            }
         }
     }
 
