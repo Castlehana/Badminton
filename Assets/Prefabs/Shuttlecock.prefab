@@ -131,7 +131,7 @@ MonoBehaviour:
   speedMultiplier: 4
   gravity: -50
   dragCoefficient: 0.05
-  lifeTime: 3
+  lifeTime: 1
   landingMarkerPrefab: {fileID: 5524755386889355301, guid: 5f4d47911623e534c9174f2c53c98a65, type: 3}
 --- !u!96 &-5784590473075742718
 TrailRenderer:

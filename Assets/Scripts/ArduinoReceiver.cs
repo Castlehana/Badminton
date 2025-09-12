@@ -7,7 +7,7 @@ public class ArduinoReceiver : MonoBehaviour
     public PlayerShooting shooter;
     public PlayerMovement playerMovement;
 
-    SerialPort sp = new SerialPort("COM3", 115200);
+    SerialPort sp = new SerialPort("COM5", 115200);
     Thread readThread;
     volatile bool keepReading = true;
 

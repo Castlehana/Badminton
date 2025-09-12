@@ -438,12 +438,12 @@ MonoBehaviour:
   shuttlecockPrefab: {fileID: 5145767458432394284, guid: df635c130dc428b43b7055c74abab7cb, type: 3}
   shuttlecockTag: Shuttlecock
   respawnDelay: 1
-  minYaw: 170
-  maxYaw: 190
-  minPitch: 45
-  maxPitch: 45
-  minForce: 30
-  maxForce: 30
+  minYaw: 160
+  maxYaw: 200
+  minPitch: 25
+  maxPitch: 60
+  minForce: 15
+  maxForce: 50
 --- !u!1 &894253581
 GameObject:
   m_ObjectHideFlags: 0
