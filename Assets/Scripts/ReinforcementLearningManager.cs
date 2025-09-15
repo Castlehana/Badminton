@@ -22,7 +22,7 @@ public class ReinforcementLearningManager : MonoBehaviour
         if (goalObj == null)
         {
             // 요구사항: Goal이 없으면 "셔틀콕 없음"으로 표시
-            Debug.Log("셔틀콕 없음");
+            //Debug.Log("셔틀콕 없음");
             return;
         }
 
@@ -62,13 +62,13 @@ public class ReinforcementLearningManager : MonoBehaviour
             Rigidbody rb = shuttlecock.GetComponent<Rigidbody>();
             if (rb != null) speed = rb.velocity.magnitude;
 
-            Debug.Log(
-                $"Shuttlecock 상대 위치(플레이어 기준): X={relativePos.x:F2}, Y={relativePos.y:F2}, Z={relativePos.z:F2} | " +
-                $"셔틀콕 정규화: X={xNormDisp:F2}, Z={zNormDisp:F2} | 속력: {speed:F2} m/s | " +
-                $"Goal(XZ): ({goalPos.x:F2}, {goalPos.z:F2}) | " +
-                $"Goal 정규화: X={goalXNormDisp:F2}, Z={goalZNormDisp:F2} | " +
-                $"OUT_OF_COURT={isOutOfCourt}"
-            );
+            //Debug.Log(
+            //    $"Shuttlecock 상대 위치(플레이어 기준): X={relativePos.x:F2}, Y={relativePos.y:F2}, Z={relativePos.z:F2} | " +
+            //    $"셔틀콕 정규화: X={xNormDisp:F2}, Z={zNormDisp:F2} | 속력: {speed:F2} m/s | " +
+            //    $"Goal(XZ): ({goalPos.x:F2}, {goalPos.z:F2}) | " +
+            //    $"Goal 정규화: X={goalXNormDisp:F2}, Z={goalZNormDisp:F2} | " +
+            //    $"OUT_OF_COURT={isOutOfCourt}"
+            //);
         }
     }
 }
