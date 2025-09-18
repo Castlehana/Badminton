@@ -4,10 +4,13 @@ using UnityEngine;
 
 public class ArduinoReceiver : MonoBehaviour
 {
+    // 인스펙터에서 COM 포트를 직접 입력할 수 있는 필드
+    public string comPort;
+
     public PlayerShooting shooter;
     public PlayerMovement playerMovement;
 
-    SerialPort sp = new SerialPort("COM5", 115200);
+    SerialPort sp;
     Thread readThread;
     volatile bool keepReading = true;
 
@@ -15,19 +18,25 @@ public class ArduinoReceiver : MonoBehaviour
     Vector2 latestMoveInput = Vector2.zero;
     bool jumpRequested = false;
 
+    private const int BAUD_RATE = 115200;
+
     void Start()
     {
-        sp.ReadTimeout = 100;
+        // 인스펙터에 입력된 COM 포트 번호로 시리얼 포트 객체 생성
+        sp = new SerialPort(comPort, BAUD_RATE);
+        sp.ReadTimeout = 2000;
+
         try
         {
             sp.Open();
             readThread = new Thread(ReadSerial);
             readThread.Start();
-            Debug.Log("Serial port opened successfully.");
+            Debug.Log($"시리얼 포트 {comPort}에 성공적으로 연결했습니다.");
         }
         catch (System.Exception e)
         {
-            Debug.LogError("시리얼 포트 열기 실패: " + e.Message);
+            Debug.LogError($"시리얼 포트 {comPort} 열기 실패: " + e.Message);
+            this.enabled = false;
         }
 
         if (playerMovement == null)
@@ -70,15 +79,11 @@ public class ArduinoReceiver : MonoBehaviour
 
     void Update()
     {
-        // 스윙 처리
         if (!string.IsNullOrEmpty(latestSwingData))
         {
             string msg = latestSwingData;
-            latestSwingData = ""; // 다음 입력을 위해 비움
+            latestSwingData = "";
 
-            //Debug.Log($"스윙 동작 감지: {msg}");
-
-            // "SWING:" 뒤 부분만 추출
             string command = msg.Substring(6).Trim().ToUpper();
 
             if (shooter != null)
@@ -86,42 +91,18 @@ public class ArduinoReceiver : MonoBehaviour
                 switch (command)
                 {
                     case "CLEAR":
-                        shooter.Clear();    // 스윙은 CLEAR만 실행
+                        shooter.Clear();
                         break;
-
-                        // 나머지 스윙 동작은 주석 처리
-                        /*
-                        case "DROP":
-                            shooter.Drop();
-                            break;
-                        case "SMASH":
-                            shooter.Smash();
-                            break;
-                        case "PUSH":
-                            shooter.Push();
-                            break;
-                        case "HAIRPIN":
-                            shooter.Hairpin();
-                            break;
-                        case "DRIVE":
-                            shooter.Drive();
-                            break;
-                        default:
-                            Debug.Log($"알 수 없는 SWING 명령: {command}");
-                            break;
-                        */
                 }
             }
         }
 
-        // 점프 처리
         if (jumpRequested && playerMovement != null)
         {
-            playerMovement.Jump();   // JUMP는 그대로 실행
+            playerMovement.Jump();
             jumpRequested = false;
         }
 
-        // 이동 처리
         if (playerMovement != null)
         {
             float normalizedX = latestMoveInput.x / 127f;
@@ -142,7 +123,7 @@ public class ArduinoReceiver : MonoBehaviour
         {
             readThread.Join();
         }
-        if (sp.IsOpen)
+        if (sp != null && sp.IsOpen)
         {
             sp.Close();
         }
