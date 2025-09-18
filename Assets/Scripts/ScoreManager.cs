@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -13,6 +14,7 @@ using UnityEngine.Events;
 public class ScoreManager : MonoBehaviour
 {
     public enum Side { Player, Opponent }
+
     [Header("라운드 점수")]
     public int gamePoint = 11;
 
@@ -25,6 +27,7 @@ public class ScoreManager : MonoBehaviour
     public UnityEvent<Side> onPointWon;
     public UnityEvent<Side> onGameOver;
 
+    // 11점 내기 게임
     public bool IsGameOver => (player >= gamePoint ||  opponent >= gamePoint) /*&& Mathf.Abs(player - opponent) >= 2*/;
 
     public void ResetAll() { player = 0; opponent = 0; onScoreChanged?.Invoke(player, opponent); }
@@ -32,6 +35,7 @@ public class ScoreManager : MonoBehaviour
     public void AwardPoint(Side who)
     {
         if (IsGameOver) return;
+
         if (who == Side.Player)
             player++;
         else
@@ -39,18 +43,28 @@ public class ScoreManager : MonoBehaviour
 
         onScoreChanged?.Invoke(player, opponent);
         onPointWon?.Invoke(who);
+
         if (IsGameOver) onGameOver?.Invoke(who);
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        // 시작 시 라운드 리셋
+        ResetAll();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if (Input.GetKeyDown(KeyCode.N))
+        {
+            AwardPoint(ScoreManager.Side.Player);
+        }
+
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            AwardPoint(ScoreManager.Side.Opponent);
+        }
     }
 }
