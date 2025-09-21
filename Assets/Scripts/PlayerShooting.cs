@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 
 using UnityEngine;
@@ -24,14 +24,14 @@ public class PlayerShooting : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) Hairpin();
         if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)) Drive();
 
-        // Q¸¦ ´©¸£¸é Test ¹ß»ç
+        // Që¥¼ ëˆ„ë¥´ë©´ Test ë°œì‚¬
         if (Input.GetKeyDown(KeyCode.Q))
         {
             Test();
         }
     }
 
-    // Test: inspector¿¡¼­ ÁöÁ¤ÇÑ testYaw, testPitch, testForce·Î ¹ß»ç
+    // Test: inspectorì—ì„œ ì§€ì •í•œ testYaw, testPitch, testForceë¡œ ë°œì‚¬
     void Test()
     {
         LaunchToAll(testYaw, testPitch, testForce, "Test");
@@ -62,19 +62,19 @@ public class PlayerShooting : MonoBehaviour
             if (sc != null)
             {
                 sc.Launch(yaw, pitch, force);
-                Debug.Log($"{shotName} ¹ß»çµÊ (Yaw: {yaw}) ¡æ {sc.name}");
+                Debug.Log($"{shotName} ë°œì‚¬ë¨ (Yaw: {yaw}) â†’ {sc.name}");
             }
         }
 
         shuttlecocksInRange.Clear();
     }
 
-    public void Clear() => LaunchToAll(0f, 45f, 35f, "Å¬¸®¾î");
-    public void Drop() => LaunchToAll(0f, 60f, 15f, "µå·Ó");
-    public void Smash() => LaunchToAll(0f, -5f, 40f, "½º¸Å½Ã");
-    public void Push() => LaunchToAll(0f, -40f, 40f, "Çª½Ã");
-    public void Hairpin() => LaunchToAll(0f, 60f, 9f, "Çì¾îÇÉ");
-    public void Drive() => LaunchToAll(0f, 10f, 25f, "µå¶óÀÌºê");
+    public void Clear() => LaunchToAll(0f, 45f, 35f, "í´ë¦¬ì–´");
+    public void Drop() => LaunchToAll(0f, 60f, 15f, "ë“œë¡­");
+    public void Smash() => LaunchToAll(0f, -5f, 40f, "ìŠ¤ë§¤ì‹œ");
+    public void Push() => LaunchToAll(0f, -40f, 40f, "í‘¸ì‹œ");
+    public void Hairpin() => LaunchToAll(0f, 60f, 9f, "í—¤ì–´í•€");
+    public void Drive() => LaunchToAll(0f, 10f, 25f, "ë“œë¼ì´ë¸Œ");
 
     void OnTriggerEnter(Collider other)
     {
@@ -82,7 +82,7 @@ public class PlayerShooting : MonoBehaviour
         if (sc != null && !shuttlecocksInRange.Contains(sc))
         {
             shuttlecocksInRange.Add(sc);
-            //Debug.Log($"¼ÅÆ²ÄÛ °¨ÁöµÊ: {sc.name} Æ®¸®°Å ¾È¿¡ µé¾î¿È");
+            //Debug.Log($"ì…”í‹€ì½• ê°ì§€ë¨: {sc.name} íŠ¸ë¦¬ê±° ì•ˆì— ë“¤ì–´ì˜´");
         }
     }
 
@@ -92,7 +92,7 @@ public class PlayerShooting : MonoBehaviour
         if (sc != null && shuttlecocksInRange.Contains(sc))
         {
             shuttlecocksInRange.Remove(sc);
-            //Debug.Log($"¼ÅÆ²ÄÛ ³ª°¨: {sc.name} Æ®¸®°Å ¹ÛÀ¸·Î ³ª°¨");
+            //Debug.Log($"ì…”í‹€ì½• ë‚˜ê°: {sc.name} íŠ¸ë¦¬ê±° ë°–ìœ¼ë¡œ ë‚˜ê°");
         }
     }
 }
