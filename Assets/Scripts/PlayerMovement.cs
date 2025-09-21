@@ -56,7 +56,10 @@ public class PlayerMovement : MonoBehaviour
         {
             SetMoveInput(keyboardInput);
         }
-        // else: 키보드 입력이 없을 땐 외부 입력을 유지 (아무 것도 하지 않음)
+        else
+        {
+            SetMoveInput(Vector2.zero);
+        }
 
         // 키보드 점프 입력(테스트용)
         if (Input.GetKeyDown(KeyCode.Space))
