@@ -23,6 +23,7 @@ public class PlayerShooting : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) Push();
         if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) Hairpin();
         if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)) Drive();
+        if (Input.GetKeyDown(KeyCode.Alpha7) || Input.GetKeyDown(KeyCode.Keypad7)) Serve();
 
         // Q를 누르면 Test 발사
         if (Input.GetKeyDown(KeyCode.Q))
@@ -75,6 +76,7 @@ public class PlayerShooting : MonoBehaviour
     public void Push() => LaunchToAll(0f, -40f, 40f, "푸시");
     public void Hairpin() => LaunchToAll(0f, 60f, 9f, "헤어핀");
     public void Drive() => LaunchToAll(0f, 10f, 25f, "드라이브");
+    public void Serve() => LaunchToAll(0f, 45f, 15f, "서비스");
 
     void OnTriggerEnter(Collider other)
     {
