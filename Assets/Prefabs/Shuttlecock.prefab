@@ -115,7 +115,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!114 &5145767458432394285
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -133,6 +133,7 @@ MonoBehaviour:
   dragCoefficient: 0.05
   lifeTime: 1
   landingMarkerPrefab: {fileID: 5524755386889355301, guid: 5f4d47911623e534c9174f2c53c98a65, type: 3}
+  shootingLock: 0
 --- !u!96 &-5784590473075742718
 TrailRenderer:
   serializedVersion: 2
