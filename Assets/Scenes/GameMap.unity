@@ -491,9 +491,9 @@ MonoBehaviour:
   score: {fileID: 376119036}
   shuttleTag: Shuttlecock
   netZ: 0
-  groundY: 0.5
+  groundY: -0.48
   halfWidthX: 11
-  halfLengthZ: 20
+  halfLengthZ: 21
   debugLogs: 0
   drawGizmos: 1
 --- !u!4 &565393829
@@ -504,7 +504,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 565393827}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -16.411736, y: 8.502404, z: -16.761032}
+  m_LocalPosition: {x: 0, y: 19.66, z: 9.75}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2057,6 +2057,7 @@ GameObject:
   - component: {fileID: 1741582302}
   - component: {fileID: 1741582304}
   - component: {fileID: 1741582305}
+  - component: {fileID: 1741582306}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -2153,7 +2154,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1741582297}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 604d51191eadb8446bec4c3439db08e8, type: 3}
   m_Name: 
@@ -2179,7 +2180,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 112
+  m_Constraints: 122
   m_CollisionDetection: 0
 --- !u!135 &1741582304
 SphereCollider:
@@ -2209,6 +2210,18 @@ MonoBehaviour:
   testYaw: 0
   testPitch: 45
   testForce: 50
+--- !u!114 &1741582306
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1741582297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f586d99978307744a4fd873c8e8c0ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1820655779
 GameObject:
   m_ObjectHideFlags: 0
