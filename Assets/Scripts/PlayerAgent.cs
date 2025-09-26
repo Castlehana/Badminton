@@ -28,6 +28,9 @@ public class PlayerAgent : Agent
     bool _landedDetected;                 // 착지 감지 여부
     float _landedAt;                      // 착지 시각(Realtime)
 
+    [Header("Court Area")]
+    public Collider myCourtArea; // 내 코트 
+
     Rigidbody _rb;
     bool _hitGivenThisStep = false;                // 중복 지급 방지
     bool _episodeClosing;
@@ -39,6 +42,16 @@ public class PlayerAgent : Agent
         if (!movement) movement = GetComponent<PlayerMovement>();
         if (!_rb) _rb = GetComponent<Rigidbody>();
         if (!rl) rl = FindObjectOfType<ReinforcementLearningManager>();
+
+        if (movement) movement.trainingMode = true;
+    }
+
+    bool IsInsideCollider(Collider col, Vector3 point)
+    {
+        if (!col || col.Equals(null)) return false;
+        // 콜라이더 내부면 ClosestPoint가 point 자체(또는 매우 근접)를 반환
+        Vector3 c = col.ClosestPoint(point);
+        return (c - point).sqrMagnitude < 1e-6f;
     }
 
     public override void OnEpisodeBegin()
@@ -146,27 +159,30 @@ public class PlayerAgent : Agent
         var goal = GameObject.FindGameObjectWithTag(goalTag);
         if (goal && rl)
         {
-            // 플레이어/Goal을 동일 축으로 정규화한 뒤 2D 거리
-            float cw = rl.courtHalfWidthX;
-            float cz = rl.courtHalfLengthZ;
+            // 내 코트 콜라이더가 설정되어 있고, Goal이 그 안에 있을 때만 보상
+            bool goalInMyCourt = myCourtArea ? IsInsideCollider(myCourtArea, goal.transform.position) : true;
+            if (goalInMyCourt)
+            {
+                // 플레이어/Goal을 동일 축으로 정규화한 뒤 2D 거리
+                float cw = rl.courtHalfWidthX;
+                float cz = rl.courtHalfLengthZ;
 
-            Vector2 pN = new Vector2(
-                Mathf.Clamp(transform.position.x, -cw, cw) / cw,
-                Mathf.Clamp(transform.position.z, -cz, cz) / cz
-            );
+                Vector2 pN = new Vector2(
+                    Mathf.Clamp(transform.position.x, -cw, cw) / cw,
+                    Mathf.Clamp(transform.position.z, -cz, cz) / cz
+                );
 
-            Vector2 gN = new Vector2(
-                Mathf.Clamp(goal.transform.position.x, -cw, cw) / cw,
-                Mathf.Clamp(goal.transform.position.z, -cz, cz) / cz
-            );
+                Vector2 gN = new Vector2(
+                    Mathf.Clamp(goal.transform.position.x, -cw, cw) / cw,
+                    Mathf.Clamp(goal.transform.position.z, -cz, cz) / cz
+                );
 
-            float dist = Vector2.Distance(pN, gN);             // 0..~√2
-            float closeness = Mathf.Clamp01(1f - (dist / 1.4142f)); // 0..1
-            AddReward(stepCenteringWeight * closeness);
+                float dist = Vector2.Distance(pN, gN);                 // 0..~√2
+                float closeness = Mathf.Clamp01(1f - (dist / 1.4142f)); // 0..1
+                AddReward(stepCenteringWeight * closeness);
+            }
         }
 
-        // (2) 타격 성공 보상은 OnCollisionEnter에서 지급
-        // 이 프레임에 충돌해서 보상 줬다면 _hitGivenThisStep = true 로 설정됨
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
