@@ -23,6 +23,8 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 moveInput = Vector3.zero;
     private float verticalVelocity;
 
+    public bool trainingMode = true;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -47,6 +49,8 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        if (trainingMode) return;
+
         // 키보드 이동 입력 (테스트용): 있으면 '우선순위 높게' 외부 입력을 덮어쓴다.
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
