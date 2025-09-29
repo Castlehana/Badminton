@@ -4,12 +4,12 @@ using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
 
-[RequireComponent(typeof(PlayerMovement), typeof(Rigidbody))]
+[RequireComponent(typeof(EnemyMovement), typeof(Rigidbody))]
 public class PlayerAgent : Agent
 {
     [Header("Refs")]
-    public PlayerMovement movement;
-    public PlayerShooting shooting;                // (선택) 스윙 실행용
+    public EnemyMovement movement;
+    public EnemyShooting shooting;                // (선택) 스윙 실행용
     public ReinforcementLearningManager rl;        // courtHalfWidthX/Z 등 값 참조
 
     [Header("Tags/Names")]
@@ -39,7 +39,7 @@ public class PlayerAgent : Agent
 
     public override void Initialize()
     {
-        if (!movement) movement = GetComponent<PlayerMovement>();
+        if (!movement) movement = GetComponent<EnemyMovement>();
         if (!_rb) _rb = GetComponent<Rigidbody>();
         if (!rl) rl = FindObjectOfType<ReinforcementLearningManager>();
 
@@ -150,7 +150,7 @@ public class PlayerAgent : Agent
         movement.SetMoveInput(move);
 
         if (da[0] == 1) movement.Jump();
-        if (da[1] == 1 && shooting) shooting.Clear();
+        //if (da[1] == 1 && shooting) shooting.Clear();
 
         // ----- 보상(Reward) -----
         AddReward(timePenalty); // 소량 시간 패널티
