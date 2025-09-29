@@ -1047,14 +1047,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.07758909, y: 0, z: 0, w: 0.99698544}
-  m_LocalPosition: {x: 0, y: 3.54, z: -6.29}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.08825019, y: 0.6723863, z: -0.090152614, w: 0.72937036}
+  m_LocalPosition: {x: -34.26, y: 17.92, z: -5.08}
+  m_LocalScale: {x: 2.26, y: 2.3460367, z: 2.9839633}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1741582301}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 8.9, y: 0, z: 0}
+  m_Father: {fileID: 0}
+  m_RootOrder: 20
+  m_LocalEulerAnglesHint: {x: 14.476, y: 85.248, z: -0.759}
 --- !u!1 &1085431962
 GameObject:
   m_ObjectHideFlags: 0
@@ -1848,7 +1848,6 @@ Transform:
   m_LocalScale: {x: 2.26, y: 2.33, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 963194228}
   - {fileID: 9073648056227428990}
   - {fileID: 7353006100432139116}
   m_Father: {fileID: 0}
@@ -1904,6 +1903,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   overZone: {fileID: 9073648056227428991}
   underZone: {fileID: 8506754144345619371}
+  shuttlecocksInRange: []
   testYaw: 0
   testPitch: 45
   testForce: 50
@@ -2087,7 +2087,7 @@ Transform:
   m_Children:
   - {fileID: 952081508}
   m_Father: {fileID: 1741582301}
-  m_RootOrder: 2
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7617231175577687931
 GameObject:
@@ -2161,7 +2161,7 @@ Transform:
   m_Children:
   - {fileID: 1736473448}
   m_Father: {fileID: 1741582301}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &9073648056227428991
 MonoBehaviour:

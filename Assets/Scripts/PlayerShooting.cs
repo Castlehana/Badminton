@@ -5,25 +5,33 @@ using UnityEngine;
 
 public class PlayerShooting : MonoBehaviour
 {
-    private List<Shuttlecock> shuttlecocksInRange = new List<Shuttlecock>();
+    [Header("Swing Zones")]
+    public SwingZone overZone;
+    public SwingZone underZone;
+
+    public List<Shuttlecock> shuttlecocksInRange = new List<Shuttlecock>();
 
     [Header("Test Launch Values")]
     public float testYaw = 0f;
     public float testPitch = 45f;
     public float testForce = 50f;
 
-   
-
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) Clear();
-        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) Drop();
-        if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) Smash();
-        if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) Push();
-        if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) Hairpin();
-        if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)) Drive();
-        if (Input.GetKeyDown(KeyCode.Alpha7) || Input.GetKeyDown(KeyCode.Keypad7)) Serve();
+        // 1~4 숫자 키 입력에 따른 4가지 스윙 재 구성
+        if (Input.GetKeyDown(KeyCode.Alpha1)) OverStrong();
+        if (Input.GetKeyDown(KeyCode.Alpha2)) OverWeak();
+        if (Input.GetKeyDown(KeyCode.Alpha3)) UnderStrong();
+        if (Input.GetKeyDown(KeyCode.Alpha4)) UnderWeak();
+
+        //if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) Clear();
+        //if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) Drop();
+        //if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) Smash();
+        //if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) Push();
+        //if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) Hairpin();
+        //if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)) Drive();
+        //if (Input.GetKeyDown(KeyCode.Alpha7) || Input.GetKeyDown(KeyCode.Keypad7)) Serve();
 
         // Q를 누르면 Test 발사
         if (Input.GetKeyDown(KeyCode.Q))
@@ -78,6 +86,52 @@ public class PlayerShooting : MonoBehaviour
     public void Drive() => LaunchToAll(0f, 10f, 25f, "드라이브");
     public void Serve() => LaunchToAll(0f, 45f, 15f, "서비스");
 
+    public void OverStrong()
+    {
+        shuttlecocksInRange = overZone.GetShuttlecocks();
+        if (shuttlecocksInRange.Count == 0)
+        {
+            // 없는데 휘두름(헛스윙)
+            return;
+        }
+
+        LaunchToAll(0f, -5f, 40f, "OverStrong");
+    }
+    public void OverWeak()
+    {
+        shuttlecocksInRange = overZone.GetShuttlecocks();
+        if (shuttlecocksInRange.Count == 0)
+        {
+            // 없는데 휘두름(헛스윙)
+            return;
+        }
+
+        LaunchToAll(0f, 45f, 25f, "OverWeak");
+    }
+    public void UnderStrong()
+    {
+        shuttlecocksInRange = underZone.GetShuttlecocks();
+        if (shuttlecocksInRange.Count == 0)
+        {
+            // 없는데 휘두름(헛스윙)
+            return;
+        }
+
+        LaunchToAll(0f, 60f, 10f, "UnderStrong");
+    }
+    public void UnderWeak()
+    {
+        shuttlecocksInRange = underZone.GetShuttlecocks();
+        if (shuttlecocksInRange.Count == 0)
+        {
+            // 없는데 휘두름(헛스윙)
+            return;
+        }
+
+        LaunchToAll(0f, 45f, 15f, "UnderWeak");
+    }
+
+    // 사용하지 않게됨
     void OnTriggerEnter(Collider other)
     {
         Shuttlecock sc = other.GetComponent<Shuttlecock>();
@@ -87,7 +141,6 @@ public class PlayerShooting : MonoBehaviour
             //Debug.Log($"셔틀콕 감지됨: {sc.name} 트리거 안에 들어옴");
         }
     }
-
     void OnTriggerExit(Collider other)
     {
         Shuttlecock sc = other.GetComponent<Shuttlecock>();

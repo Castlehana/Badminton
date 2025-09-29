@@ -41,7 +41,7 @@ public class Shuttlecock : MonoBehaviour
         {
             foreach (var col in player.GetComponentsInChildren<Collider>())
             {
-                if (!(col is SphereCollider))
+                if (!(col is SphereCollider) && !col.isTrigger)
                     Physics.IgnoreCollision(physicsCollider, col, true);
             }
         }
