@@ -90,7 +90,7 @@ public class EnemyShooting : MonoBehaviour
             return;
         }
 
-        LaunchToAll(0f, -5f, 40f, "OverStrong");
+        LaunchToAll(0f, 10f, 25f, "OverStrong");
     }
     public void OverWeak()
     {
@@ -101,7 +101,7 @@ public class EnemyShooting : MonoBehaviour
             return;
         }
 
-        LaunchToAll(0f, 45f, 25f, "OverWeak");
+        LaunchToAll(0f, 30f, 20f, "OverWeak");
     }
     public void UnderStrong()
     {
@@ -112,7 +112,7 @@ public class EnemyShooting : MonoBehaviour
             return;
         }
 
-        LaunchToAll(0f, 60f, 10f, "UnderStrong");
+        LaunchToAll(0f, 45f, 20f, "UnderStrong");
     }
     public void UnderWeak()
     {
@@ -123,7 +123,7 @@ public class EnemyShooting : MonoBehaviour
             return;
         }
 
-        LaunchToAll(0f, 45f, 15f, "UnderWeak");
+        LaunchToAll(0f, 60f, 10f, "UnderWeak");
     }
 
     // 사용하지 않게됨

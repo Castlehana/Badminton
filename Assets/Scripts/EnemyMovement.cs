@@ -5,19 +5,19 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
 public class EnemyMovement : MonoBehaviour
 {
-    [Header("???? ????")]
+    [Header("이동 속도")]
     public float moveSpeed = 5f;
 
-    [Header("???? ????")]
+    [Header("점프 속도")]
     public float jumpForce = 5f;
 
-    [Header("???? ?????? (???? ??)")]
+    [Header("중력 가속도 (음수 값)")]
     public float gravity = -9.81f;
 
-    [Header("?? ?????? ??????")]
+    [Header("땅 체크용 레이어")]
     public LayerMask groundLayer;
 
-    [Header("?? ???? Ray ???? ????")]
+    [Header("땅 체크 Ray 추가 길이")]
     public float groundCheckDistance = 0.1f;
 
     private Rigidbody rb;
@@ -34,13 +34,13 @@ public class EnemyMovement : MonoBehaviour
         rb.useGravity = false;
     }
 
-    // ????(????????)???? ???? ?????? ????
+    // 외부(아두이노)에서 이동 입력을 설정
     public void SetMoveInput(Vector2 input)
     {
         moveInput = new Vector3(input.x, 0f, input.y).normalized;
     }
 
-    // ????(????????)???? ???? ????
+    // 외부(아두이노)에서 점프 요청
     public void Jump()
     {
         if (IsGrounded())
@@ -51,23 +51,28 @@ public class EnemyMovement : MonoBehaviour
 
     void Update()
     {
-        if (trainingMode) return;
+        if (trainingMode)
+        {
+            //Debug.Log(trainingMode);
+            return;
+        }
 
-        // ?????? ???? ???? (????????): ?????? '???????? ????' ???? ?????? ????????.
+        // 키보드 이동 입력 (테스트용): 있으면 '우선순위 높게' 외부 입력을 덮어쓴다.
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
         Vector2 keyboardInput = new Vector2(-horizontal, -vertical);
 
-        if (keyboardInput.magnitude > 0.1f)
+        if (keyboardInput.magnitude > 0.01f)
         {
             SetMoveInput(keyboardInput);
+            
         }
         else
         {
-            SetMoveInput(Vector2.zero);
+            SetMoveInput(Vector2.zero); 
         }
 
-        // ?????? ???? ????(????????)
+        // 키보드 점프 입력(테스트용)
         if (Input.GetKeyDown(KeyCode.Space))
         {
             Jump();

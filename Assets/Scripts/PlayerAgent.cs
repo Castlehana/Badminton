@@ -138,7 +138,7 @@ public class PlayerAgent : Agent
     }
 
     // === 행동 적용 ===
-    // 연속 2 (move XZ) + 이산 2 (jump, swing)
+    // 연속 2 (move XZ) + 이산 4 (오버2, 언더2)
     public override void OnActionReceived(ActionBuffers actions)
     {
         _hitGivenThisStep = false;
@@ -149,8 +149,11 @@ public class PlayerAgent : Agent
         Vector2 move = new Vector2(Mathf.Clamp(ca[0], -1f, 1f), Mathf.Clamp(ca[1], -1f, 1f));
         movement.SetMoveInput(move);
 
-        if (da[0] == 1) movement.Jump();
-        //if (da[1] == 1 && shooting) shooting.Clear();
+        //if (da[0] == 1) movement.Jump();
+        if (da[0] == 1 && shooting) shooting.OverStrong();
+        if (da[0] == 2 && shooting) shooting.OverWeak();
+        if (da[0] == 3 && shooting) shooting.UnderStrong();
+        if (da[0] == 4 && shooting) shooting.UnderWeak();
 
         // ----- 보상(Reward) -----
         AddReward(timePenalty); // 소량 시간 패널티
@@ -269,5 +272,4 @@ public class PlayerAgent : Agent
             }
         }
     }
-
 }

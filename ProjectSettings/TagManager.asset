@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Shuttlecock
   - Goal
+  - Enemy
   layers:
   - Default
   - TransparentFX

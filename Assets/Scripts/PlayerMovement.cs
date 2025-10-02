@@ -23,7 +23,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 moveInput = Vector3.zero;
     private float verticalVelocity;
 
-    public bool trainingMode = true;
+    public bool trainingMode = false;
 
     void Awake()
     {
