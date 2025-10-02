@@ -43,10 +43,10 @@ public class PlayerShooting : MonoBehaviour
     // Test: inspector에서 지정한 testYaw, testPitch, testForce로 발사
     void Test()
     {
-        LaunchToAll(testYaw, testPitch, testForce, "Test");
+        LaunchToAll(testYaw, testPitch, testForce, "Test", shuttlecocksInRange);
     }
 
-    void LaunchToAll(float baseYaw, float pitch, float force, string shotName)
+    void LaunchToAll(float baseYaw, float pitch, float force, string shotName, List<Shuttlecock> targets)
     {
         float playerX = transform.position.x;
         float yaw = 0f;
@@ -66,7 +66,7 @@ public class PlayerShooting : MonoBehaviour
             yaw = UnityEngine.Random.Range(Mathf.Lerp(-20f, 0f, t), 0f);
         }
 
-        foreach (Shuttlecock sc in shuttlecocksInRange)
+        foreach (Shuttlecock sc in targets)
         {
             if (sc != null)
             {
@@ -74,61 +74,53 @@ public class PlayerShooting : MonoBehaviour
                 Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}) → {sc.name}");
             }
         }
+        //foreach (Shuttlecock sc in shuttlecocksInRange)
+        //{
+        //    if (sc != null)
+        //    {
+        //        sc.Launch(yaw, pitch, force);
+        //        Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}) → {sc.name}");
+        //    }
+        //}
 
-        shuttlecocksInRange.Clear();
+        //shuttlecocksInRange.Clear();
     }
 
-    public void Clear() => LaunchToAll(0f, 45f, 35f, "클리어");
-    public void Drop() => LaunchToAll(0f, 60f, 15f, "드롭");
-    public void Smash() => LaunchToAll(0f, -5f, 40f, "스매시");
-    public void Push() => LaunchToAll(0f, -40f, 40f, "푸시");
-    public void Hairpin() => LaunchToAll(0f, 60f, 9f, "헤어핀");
-    public void Drive() => LaunchToAll(0f, 10f, 25f, "드라이브");
-    public void Serve() => LaunchToAll(0f, 45f, 15f, "서비스");
+    public void Clear() => LaunchToAll(0f, 45f, 35f, "클리어", shuttlecocksInRange);
+    public void Drop() => LaunchToAll(0f, 60f, 15f, "드롭", shuttlecocksInRange);
+    public void Smash() => LaunchToAll(0f, -5f, 40f, "스매시", shuttlecocksInRange);
+    public void Push() => LaunchToAll(0f, -40f, 40f, "푸시", shuttlecocksInRange);
+    public void Hairpin() => LaunchToAll(0f, 60f, 9f, "헤어핀", shuttlecocksInRange);
+    public void Drive() => LaunchToAll(0f, 10f, 25f, "드라이브", shuttlecocksInRange);
+    public void Serve() => LaunchToAll(0f, 45f, 15f, "서비스", shuttlecocksInRange);
 
     public void OverStrong()
     {
-        shuttlecocksInRange = overZone.GetShuttlecocks();
-        if (shuttlecocksInRange.Count == 0)
-        {
-            // 없는데 휘두름(헛스윙)
-            return;
-        }
+        var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
+        if (targets.Count == 0) return;
 
-        LaunchToAll(0f, -5f, 40f, "OverStrong");
+        LaunchToAll(0f, 10f, 25f, "OverStrong", targets);
     }
     public void OverWeak()
     {
-        shuttlecocksInRange = overZone.GetShuttlecocks();
-        if (shuttlecocksInRange.Count == 0)
-        {
-            // 없는데 휘두름(헛스윙)
-            return;
-        }
+        var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
+        if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 45f, 25f, "OverWeak");
+        LaunchToAll(0f, 30f, 20f, "OverWeak", targets);
     }
     public void UnderStrong()
     {
-        shuttlecocksInRange = underZone.GetShuttlecocks();
-        if (shuttlecocksInRange.Count == 0)
-        {
-            // 없는데 휘두름(헛스윙)
-            return;
-        }
+        var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
+        if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 60f, 10f, "UnderStrong");
+        LaunchToAll(0f, 45f, 20f, "UnderStrong", targets);
     }
     public void UnderWeak()
     {
-        shuttlecocksInRange = underZone.GetShuttlecocks();
-        if (shuttlecocksInRange.Count == 0)
-        {
-            // 없는데 휘두름(헛스윙)
-            return;
-        }
+        var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
+        if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 45f, 15f, "UnderWeak");
+        LaunchToAll(0f, 60f, 10f, "UnderWeak", targets);
     }
 
     // 사용하지 않게됨

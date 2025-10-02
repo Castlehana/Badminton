@@ -701,7 +701,7 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &800990937
 GameObject:
@@ -1253,7 +1253,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4869671935439052, guid: 608706a44779b9143b98aafe07eb9d71, type: 3}
       propertyPath: m_RootOrder
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4869671935439052, guid: 608706a44779b9143b98aafe07eb9d71, type: 3}
       propertyPath: m_LocalScale.y
@@ -1904,6 +1904,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   overZone: {fileID: 9073648056227428991}
   underZone: {fileID: 8506754144345619371}
+  shuttlecocksInRange: []
   testYaw: 0
   testPitch: 45
   testForce: 50
@@ -2081,7 +2082,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3619790888591718040}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.8289598, z: 0.314}
+  m_LocalPosition: {x: 0, y: 0.98, z: 0.314}
   m_LocalScale: {x: 2.69875, y: 1.5113, z: 1.5113}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2155,7 +2156,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7617231175577687931}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.35, z: 0.31400013}
+  m_LocalPosition: {x: 0, y: 2.5010402, z: 0.31400013}
   m_LocalScale: {x: 2.69875, y: 1.5113, z: 1.5113}
   m_ConstrainProportionsScale: 0
   m_Children:
