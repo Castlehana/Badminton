@@ -214,7 +214,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   comPort: 
   shooter: {fileID: 0}
-  playerMovement: {fileID: 1741582302}
+  playerMovement: {fileID: 0}
 --- !u!4 &105182138
 Transform:
   m_ObjectHideFlags: 0
@@ -243,7 +243,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shooter: {fileID: 0}
-  playerMovement: {fileID: 1741582302}
+  playerMovement: {fileID: 0}
 --- !u!114 &105182140
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1289,8 +1289,8 @@ MonoBehaviour:
   respawnDelay: 1
   minYaw: 160
   maxYaw: 200
-  minPitch: 25
-  maxPitch: 60
+  minPitch: 120
+  maxPitch: 155
   minForce: 15
   maxForce: 50
 --- !u!1 &894253581
@@ -2400,12 +2400,12 @@ GameObject:
   - component: {fileID: 1741582299}
   - component: {fileID: 1741582298}
   - component: {fileID: 1741582303}
-  - component: {fileID: 1741582302}
   - component: {fileID: 1741582304}
   - component: {fileID: 1741582308}
   - component: {fileID: 1741582307}
   - component: {fileID: 1741582306}
   - component: {fileID: 1741582309}
+  - component: {fileID: 1741582310}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Player
@@ -2494,26 +2494,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
---- !u!114 &1741582302
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1741582297}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 604d51191eadb8446bec4c3439db08e8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  moveSpeed: 15
-  jumpForce: 20
-  gravity: -50
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  groundCheckDistance: 0.2
-  trainingMode: 1
 --- !u!54 &1741582303
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2573,7 +2553,7 @@ MonoBehaviour:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
   MaxStep: 0
-  movement: {fileID: 1741582302}
+  movement: {fileID: 0}
   shooting: {fileID: 0}
   rl: {fileID: 944028008}
   shuttlecockTag: Shuttlecock
@@ -2631,6 +2611,26 @@ MonoBehaviour:
   testYaw: 0
   testPitch: 45
   testForce: 50
+--- !u!114 &1741582310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1741582297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49f2e899c0c654b9db17aaa699bcbb4b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 5
+  jumpForce: 5
+  gravity: -9.81
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  groundCheckDistance: 0.1
+  trainingMode: 1
 --- !u!1 &1820655779
 GameObject:
   m_ObjectHideFlags: 0
