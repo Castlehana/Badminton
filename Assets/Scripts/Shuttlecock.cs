@@ -95,7 +95,7 @@ public class Shuttlecock : MonoBehaviour
 
         // 낙하 지점 예측
         Vector3 landingPos = PredictLandingPoint(yaw, pitch, force);
-        Debug.Log($"예상 낙하 지점: {landingPos}");
+        //Debug.Log($"예상 낙하 지점: {landingPos}");
 
         // Goal 재사용 또는 생성
         GameObject goalObj = GameObject.FindGameObjectWithTag("Goal");
