@@ -99,28 +99,28 @@ public class PlayerShooting : MonoBehaviour
         var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 10f, 25f, "OverStrong", targets);
+        LaunchToAll(0f, 170f, 25f, "OverStrong", targets);
     }
     public void OverWeak()
     {
         var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 30f, 20f, "OverWeak", targets);
+        LaunchToAll(0f, 150f, 20f, "OverWeak", targets);
     }
     public void UnderStrong()
     {
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 45f, 20f, "UnderStrong", targets);
+        LaunchToAll(0f, 135f, 20f, "UnderStrong", targets);
     }
     public void UnderWeak()
     {
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 60f, 10f, "UnderWeak", targets);
+        LaunchToAll(0f, 120f, 10f, "UnderWeak", targets);
     }
 
     // 사용하지 않게됨

@@ -14,8 +14,8 @@ public class Shooter : MonoBehaviour
     public float maxYaw = 190f;
 
     [Header("위쪽 각도 범위 (Pitch)")]
-    public float minPitch = 30f;
-    public float maxPitch = 60f;
+    public float minPitch = 120f;
+    public float maxPitch = 150f;
 
     [Header("발사 속도 범위")]
     public float minForce = 30f;

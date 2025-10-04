@@ -40,10 +40,10 @@ public class AutoMovement : MonoBehaviour
         }
         centerPos.x = 0.0f;
         centerPos.y = myPos.y;
-        centerPos.z = -10.0f;
+        centerPos.z = 10.0f;
 
         // 내 코트쪽에 'Goal' 태그가 있으면 따라가기
-        if (goalObj != null && destPos.z < 0)
+        if (goalObj != null && destPos.z > 0)
         {
             transform.position = Vector3.MoveTowards(myPos, destPos, moveSpeed * Time.deltaTime);
         }
@@ -67,7 +67,7 @@ public class AutoMovement : MonoBehaviour
         destPos.y = myPos.y;
 
         // 골 위치가 내 코트 쪽인지 확인하기
-        if (destPos.z < 0)
+        if (destPos.z > 0)
         {
             transform.position = Vector3.MoveTowards(myPos, destPos, moveSpeed * Time.deltaTime);
             //dir.x = destPos.x - myPos.x;
@@ -88,7 +88,7 @@ public class AutoMovement : MonoBehaviour
         myPos = transform.position;
         centerPos.x = 0.0f;
         centerPos.y = myPos.y;
-        centerPos.z = -10.0f;
+        centerPos.z = 10.0f;
 
         transform.position = Vector3.MoveTowards(myPos, centerPos, moveSpeed * Time.deltaTime);
     }
