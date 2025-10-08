@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: -5784590473075742718}
   m_Layer: 0
   m_Name: Shuttlecock
-  m_TagString: Untagged
+  m_TagString: Shuttlecock
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
