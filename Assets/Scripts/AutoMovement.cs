@@ -11,6 +11,9 @@ public class AutoMovement : MonoBehaviour
     // 충돌 컴포넌트
     Rigidbody rb;
 
+    // RallyManager 참조
+    public RallyManager rallyManager;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -23,6 +26,12 @@ public class AutoMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (rallyManager != null && rallyManager.State == RallyState.Ready)
+        {
+            transform.position = new Vector3(0f, 3f, 10f);
+            return;
+        }
+
         GameObject goalObj = GameObject.FindGameObjectWithTag("Goal");
 
         // 현재 내 위치와 골 위치, 중심 구하기

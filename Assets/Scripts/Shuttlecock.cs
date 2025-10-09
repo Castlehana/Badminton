@@ -35,6 +35,9 @@ public class Shuttlecock : MonoBehaviour
     private bool inCourt = false;
     private bool underNet = false;
 
+    // RallyManager 참조
+    public RallyManager rallyManager;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -57,6 +60,8 @@ public class Shuttlecock : MonoBehaviour
 
     void Start()
     {
+        rallyManager = FindObjectOfType<RallyManager>();
+
         // 생성 직후에는 삭제 예약을 하지 않음
         alreadyLanded = false;
         mySide = false;
@@ -80,6 +85,10 @@ public class Shuttlecock : MonoBehaviour
 
         // 득점 판정 처리 코루틴 함수
         StartCoroutine(LandingJudgeRoutine());
+
+        // 랠리 종료 상태로 전환
+        rallyManager.State = RallyState.Ended;
+        UnityEngine.Debug.Log("랠리 끝!!");
 
         // 셔틀콕 삭제 예약
         Destroy(gameObject, lifeTime);

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Security.Cryptography;
 using UnityEngine;
 
 public class PlayerShooting : MonoBehaviour
@@ -16,6 +16,9 @@ public class PlayerShooting : MonoBehaviour
     public float testPitch = 45f;
     public float testForce = 50f;
 
+    public RallyManager rallyManager;
+    public GameObject shuttlePrefab;
+    public Transform spawnPoint;
 
     void Update()
     {
@@ -110,6 +113,20 @@ public class PlayerShooting : MonoBehaviour
     }
     public void UnderStrong()
     {
+        // 서브의 경우
+        if (rallyManager.State == RallyState.Ready)
+        {
+            UnityEngine.Debug.Log("서브!!");
+            GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
+            Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
+
+            shuttle.Launch(0f, 135f, 15f);
+
+            rallyManager.State = RallyState.Rallying;
+
+            return;
+        }
+
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
@@ -117,6 +134,20 @@ public class PlayerShooting : MonoBehaviour
     }
     public void UnderWeak()
     {
+        // 서브의 경우
+        if (rallyManager.State == RallyState.Ready)
+        {
+            UnityEngine.Debug.Log("서브!!");
+            GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
+            Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
+
+            shuttle.Launch(0f, 135f, 15f);
+
+            rallyManager.State = RallyState.Rallying;
+
+            return;
+        }
+
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
