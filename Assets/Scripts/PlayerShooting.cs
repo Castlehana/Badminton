@@ -53,8 +53,8 @@ public class PlayerShooting : MonoBehaviour
 
         if (playerX <= -5f)
         {
-            float t = Mathf.InverseLerp(-10f, -5f, playerX);
-            yaw = UnityEngine.Random.Range(0f, Mathf.Lerp(20f, 0f, t));
+            float t = Mathf.InverseLerp(5f, 10f, playerX);
+            yaw = UnityEngine.Random.Range(Mathf.Lerp(-20f, 0f, t), 0f);
         }
         else if (playerX < 5f)
         {
@@ -62,8 +62,8 @@ public class PlayerShooting : MonoBehaviour
         }
         else
         {
-            float t = Mathf.InverseLerp(5f, 10f, playerX);
-            yaw = UnityEngine.Random.Range(Mathf.Lerp(-20f, 0f, t), 0f);
+            float t = Mathf.InverseLerp(-10f, -5f, playerX);
+            yaw = UnityEngine.Random.Range(0f, Mathf.Lerp(20f, 0f, t));
         }
 
         foreach (Shuttlecock sc in targets)
