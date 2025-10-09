@@ -7,6 +7,10 @@ TagManager:
   - Shuttlecock
   - Goal
   - Enemy
+  - MySide
+  - OpponentSide
+  - InCourt
+  - UnderNet
   layers:
   - Default
   - TransparentFX
