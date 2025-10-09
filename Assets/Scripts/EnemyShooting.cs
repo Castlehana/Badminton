@@ -76,7 +76,7 @@ public class EnemyShooting : MonoBehaviour
     {
         shuttlecocksInRange = overZone != null ? overZone.GetShuttlecocks() : new List<Shuttlecock>();
         if (shuttlecocksInRange.Count == 0) return; // 헛스윙: 아무 것도 안 함
-        LaunchToAll(0f, 10f, 25f, "OverStrong", shuttlecocksInRange);
+        LaunchToAll(0f, 40f, 15f, "OverStrong", shuttlecocksInRange);
     }
     public void OverWeak()
     {

@@ -120,7 +120,7 @@ public class PlayerShooting : MonoBehaviour
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
 
-            shuttle.Launch(0f, 135f, 15f);
+            shuttle.Launch(0f, 125f, 18f);
 
             rallyManager.State = RallyState.Rallying;
 
@@ -141,7 +141,7 @@ public class PlayerShooting : MonoBehaviour
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
 
-            shuttle.Launch(0f, 135f, 15f);
+            shuttle.Launch(0f, 125f, 18f);
 
             rallyManager.State = RallyState.Rallying;
 

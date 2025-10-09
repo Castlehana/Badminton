@@ -141,7 +141,7 @@ public class Shuttlecock : MonoBehaviour
     private IEnumerator ShootingLockRoutine()
     {
         shootingLock = true;
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.2f);
         shootingLock = false;
     }
 
