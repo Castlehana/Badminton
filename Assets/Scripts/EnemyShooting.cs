@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
-
 using UnityEngine;
 
 public class EnemyShooting : MonoBehaviour
 {
     [Header("Swing Zones")]
-    public SwingZone overZone;
+    public SwingZone overZone; // 모든 스윙은 overZone만 사용
 
     public List<Shuttlecock> shuttlecocksInRange = new List<Shuttlecock>();
 
@@ -15,22 +14,13 @@ public class EnemyShooting : MonoBehaviour
     public float testPitch = 45f;
     public float testForce = 50f;
 
-
     void Update()
     {
-        // 1~4 숫자 키 입력에 따른 4가지 스윙 재 구성
+        // 1~4 숫자 키 입력에 따른 4가지 스윙
         if (Input.GetKeyDown(KeyCode.Alpha1)) OverStrong();
         if (Input.GetKeyDown(KeyCode.Alpha2)) OverWeak();
         if (Input.GetKeyDown(KeyCode.Alpha3)) UnderStrong();
         if (Input.GetKeyDown(KeyCode.Alpha4)) UnderWeak();
-
-        //if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) Clear();
-        //if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) Drop();
-        //if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) Smash();
-        //if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) Push();
-        //if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) Hairpin();
-        //if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)) Drive();
-        //if (Input.GetKeyDown(KeyCode.Alpha7) || Input.GetKeyDown(KeyCode.Keypad7)) Serve();
 
         // Q를 누르면 Test 발사
         if (Input.GetKeyDown(KeyCode.Q))
@@ -42,13 +32,14 @@ public class EnemyShooting : MonoBehaviour
     // Test: inspector에서 지정한 testYaw, testPitch, testForce로 발사
     void Test()
     {
-        LaunchToAll(testYaw, testPitch, testForce, "Test");
+        // 테스트는 현재 감지 목록 대상으로
+        LaunchToAll(testYaw, testPitch, testForce, "Test", shuttlecocksInRange);
     }
 
-    //좌우 각도, 위아래 각도, 힘, 이
-    void LaunchToAll(float baseYaw, float pitch, float force, string shotName)
+    // 좌우 각도(yaw), 위아래 각도(pitch), 힘(force), 로그 이름, 타겟들
+    void LaunchToAll(float baseYaw, float pitch, float force, string shotName, List<Shuttlecock> targets)
     {
-        pitch = 180-pitch;
+        // PlayerShooting과 동일한 yaw 로직
         float playerX = transform.position.x;
         float yaw = 0f;
 
@@ -67,73 +58,52 @@ public class EnemyShooting : MonoBehaviour
             yaw = UnityEngine.Random.Range(Mathf.Lerp(-20f, 0f, t), 0f);
         }
 
-        foreach (Shuttlecock sc in shuttlecocksInRange)
+        foreach (Shuttlecock sc in targets)
         {
             if (sc != null)
             {
-                sc.Launch(yaw, pitch, force);
-                Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}) → {sc.name}");
+                sc.Launch(yaw, pitch, force); // ★ pitch 뒤집기 제거 → PlayerShooting과 동일
+                Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}, Pitch: {pitch}, Force: {force}) → {sc.name}");
             }
         }
 
+        // 필요 시 비우기 (원래 EnemyShooting은 비웠음)
         shuttlecocksInRange.Clear();
     }
 
-    public void Serve() => LaunchToAll(0f, 45f, 15f, "서비스");
-
+    // 아래 4개 스윙의 파라미터를 PlayerShooting과 1:1 일치
     public void OverStrong()
     {
-        shuttlecocksInRange = overZone.GetShuttlecocks();
-        if (shuttlecocksInRange.Count == 0)
-        {
-            // 없는데 휘두름(헛스윙)
-            return;
-        }
-
-        LaunchToAll(0f, 10f, 25f, "OverStrong");
+        shuttlecocksInRange = overZone != null ? overZone.GetShuttlecocks() : new List<Shuttlecock>();
+        if (shuttlecocksInRange.Count == 0) return; // 헛스윙: 아무 것도 안 함
+        LaunchToAll(0f, 10f, 25f, "OverStrong", shuttlecocksInRange);
     }
     public void OverWeak()
     {
-        shuttlecocksInRange = overZone.GetShuttlecocks();
-        if (shuttlecocksInRange.Count == 0)
-        {
-            // 없는데 휘두름(헛스윙)
-            return;
-        }
-
-        LaunchToAll(0f, 30f, 20f, "OverWeak");
+        shuttlecocksInRange = overZone != null ? overZone.GetShuttlecocks() : new List<Shuttlecock>();
+        if (shuttlecocksInRange.Count == 0) return;
+        LaunchToAll(0f, 30f, 20f, "OverWeak", shuttlecocksInRange);
     }
     public void UnderStrong()
     {
-        shuttlecocksInRange = overZone.GetShuttlecocks();
-        if (shuttlecocksInRange.Count == 0)
-        {
-            // 없는데 휘두름(헛스윙)
-            return;
-        }
-
-        LaunchToAll(0f, 45f, 20f, "UnderStrong");
+        shuttlecocksInRange = overZone != null ? overZone.GetShuttlecocks() : new List<Shuttlecock>();
+        if (shuttlecocksInRange.Count == 0) return;
+        LaunchToAll(0f, 45f, 20f, "UnderStrong", shuttlecocksInRange);
     }
     public void UnderWeak()
     {
-        shuttlecocksInRange = overZone.GetShuttlecocks();
-        if (shuttlecocksInRange.Count == 0)
-        {
-            // 없는데 휘두름(헛스윙)
-            return;
-        }
-
-        LaunchToAll(0f, 60f, 10f, "UnderWeak");
+        shuttlecocksInRange = overZone != null ? overZone.GetShuttlecocks() : new List<Shuttlecock>();
+        if (shuttlecocksInRange.Count == 0) return;
+        LaunchToAll(0f, 60f, 10f, "UnderWeak", shuttlecocksInRange);
     }
 
-    // 사용하지 않게됨
+    // (미사용) 트리거로 셔틀 목록 유지하던 로직 — 필요 시 재활성화 가능
     void OnTriggerEnter(Collider other)
     {
         Shuttlecock sc = other.GetComponent<Shuttlecock>();
         if (sc != null && !shuttlecocksInRange.Contains(sc))
         {
             shuttlecocksInRange.Add(sc);
-            //Debug.Log($"셔틀콕 감지됨: {sc.name} 트리거 안에 들어옴");
         }
     }
     void OnTriggerExit(Collider other)
@@ -142,7 +112,6 @@ public class EnemyShooting : MonoBehaviour
         if (sc != null && shuttlecocksInRange.Contains(sc))
         {
             shuttlecocksInRange.Remove(sc);
-            //Debug.Log($"셔틀콕 나감: {sc.name} 트리거 밖으로 나감");
         }
     }
 }
