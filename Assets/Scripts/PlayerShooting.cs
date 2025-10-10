@@ -23,10 +23,10 @@ public class PlayerShooting : MonoBehaviour
     void Update()
     {
         // 1~4 숫자 키 입력에 따른 4가지 스윙 재 구성
-        if (Input.GetKeyDown(KeyCode.Alpha1)) OverStrong();
-        if (Input.GetKeyDown(KeyCode.Alpha2)) OverWeak();
-        if (Input.GetKeyDown(KeyCode.Alpha3)) UnderStrong();
-        if (Input.GetKeyDown(KeyCode.Alpha4)) UnderWeak();
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) OverStrong();
+        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) OverWeak();
+        if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) UnderStrong();
+        if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) UnderWeak();
 
         //if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) Clear();
         //if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) Drop();
@@ -102,14 +102,14 @@ public class PlayerShooting : MonoBehaviour
         var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 170f, 25f, "OverStrong", targets);
+        LaunchToAll(0f, 180-35f, 30f, "OverStrong", targets);
     }
     public void OverWeak()
     {
         var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 150f, 20f, "OverWeak", targets);
+        LaunchToAll(0f, 180f-45f, 15f, "OverWeak", targets);
     }
     public void UnderStrong()
     {
@@ -120,7 +120,7 @@ public class PlayerShooting : MonoBehaviour
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
 
-            shuttle.Launch(0f, 125f, 18f);
+            shuttle.Launch(0f, 180f-45f, 15f);
 
             rallyManager.State = RallyState.Rallying;
 
@@ -130,7 +130,7 @@ public class PlayerShooting : MonoBehaviour
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 135f, 20f, "UnderStrong", targets);
+        LaunchToAll(0f, 180f-50f,  35f, "UnderStrong", targets);
     }
     public void UnderWeak()
     {
@@ -141,7 +141,7 @@ public class PlayerShooting : MonoBehaviour
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
 
-            shuttle.Launch(0f, 125f, 18f);
+            shuttle.Launch(0f, 180f - 45f, 20f);
 
             rallyManager.State = RallyState.Rallying;
 
@@ -151,7 +151,7 @@ public class PlayerShooting : MonoBehaviour
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 120f, 10f, "UnderWeak", targets);
+        LaunchToAll(0f, 180f-60f, 15f, "UnderWeak", targets);
     }
 
     // 사용하지 않게됨
