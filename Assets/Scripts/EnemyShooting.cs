@@ -62,7 +62,7 @@ public class EnemyShooting : MonoBehaviour
         {
             if (sc != null)
             {
-                sc.Launch(yaw, pitch, force); // ★ pitch 뒤집기 제거 → PlayerShooting과 동일
+                sc.Launch(yaw, pitch, force);
                 Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}, Pitch: {pitch}, Force: {force}) → {sc.name}");
             }
         }
@@ -96,8 +96,8 @@ public class EnemyShooting : MonoBehaviour
         if (shuttlecocksInRange.Count == 0) return;
         LaunchToAll(0f, 60f, 10f, "UnderWeak", shuttlecocksInRange);
     }
-
-    // (미사용) 트리거로 셔틀 목록 유지하던 로직 — 필요 시 재활성화 가능
+    
+    /* (미사용) 트리거로 셔틀 목록 유지하던 로직 — 필요 시 재활성화 가능
     void OnTriggerEnter(Collider other)
     {
         Shuttlecock sc = other.GetComponent<Shuttlecock>();
@@ -113,5 +113,5 @@ public class EnemyShooting : MonoBehaviour
         {
             shuttlecocksInRange.Remove(sc);
         }
-    }
+    }*/
 }
