@@ -19,6 +19,7 @@ public class PlayerShooting : MonoBehaviour
     public RallyManager rallyManager;
     public GameObject shuttlePrefab;
     public Transform spawnPoint;
+    public AutoMovement player;
 
     void Update()
     {
@@ -102,7 +103,15 @@ public class PlayerShooting : MonoBehaviour
         var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 180-35f, 30f, "OverStrong", targets);
+        // 점프 중 발동 시 스매시로 구분
+        if (player.isJumping)
+        {
+            LaunchToAll(0f, 180 - 0f, 30f, "Smash!!!", targets);
+        }
+        else
+        {
+            LaunchToAll(0f, 180 - 35f, 30f, "OverStrong", targets);
+        }
     }
     public void OverWeak()
     {
@@ -113,6 +122,9 @@ public class PlayerShooting : MonoBehaviour
     }
     public void UnderStrong()
     {
+        // 점프중엔 언더로 못침
+        if (player.isJumping) return;
+
         // 서브의 경우
         if (rallyManager.State == RallyState.Ready)
         {
@@ -134,6 +146,9 @@ public class PlayerShooting : MonoBehaviour
     }
     public void UnderWeak()
     {
+        // 점프중엔 언더로 못침
+        if (player.isJumping) return;
+
         // 서브의 경우
         if (rallyManager.State == RallyState.Ready)
         {
