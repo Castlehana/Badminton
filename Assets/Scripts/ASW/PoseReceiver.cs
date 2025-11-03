@@ -2,45 +2,64 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Collections.Generic;
 using UnityEngine;
 
+// Python 송신 페이로드와 동일
+// { "swing": true, "type": 0..4, "label":"Clear|Drive|Drop|Under|Hairpin", "conf":0~1, "strength":float }
 [Serializable]
 public class SwingMsg
 {
-    public bool swing;      // 스윙 발생 여부 (Python: true/false)
-    public float strength;  // 스윙 확정 순간의 속도 (Python: last_swing_speed)
-    public int type;        // Python 매핑: Overswing=1, Underswing=0
+    public bool swing;
+    public float strength;
+    public int type;        // 0:Clear, 1:Drive, 2:Drop, 3:Under, 4:Hairpin
+    public string label;    // 참고용
+    public float conf;      // softmax 확률
 }
+
+public enum SwingClass { Clear = 0, Drive = 1, Drop = 2, Under = 3, Hairpin = 4 }
 
 public class PoseReceiver : MonoBehaviour
 {
-    UdpClient udp;
+    [Header("UDP")]
     public int port = 5052;
 
+    [Header("Decision Thresholds")]
+    [Range(0f, 1f)] public float minConfidence = 0.45f; // Python TH_SOFT와 일치(필요 시 0.60으로 상향)
+    public float weakSpeed = 3f;                         // 속도 약 임계
+    public float strongSpeed = 6f;                       // 속도 강 임계
+
     [Header("Latest Swing State (Read-Only)")]
-    public bool swingDetected;   // 새 메시지에서 스윙 감지됨?
-    public float swingSpeed;     // "확정" 순간의 속도 (Last Swing)
-    public int swingType01;      // 요청 매핑: Over=0, Under=1
-    public bool isUnder;         // 요청 bool: Under면 true, Over면 false
+    public bool swingDetected;       // 새 메시지에서 스윙 감지됨?
+    public float swingSpeed;         // 확정 순간의 속도
+    public int typeId;               // 0..4 (Clear,Drive,Drop,Under,Hairpin)
+    public string typeLabel;         // 문자열 라벨
+    public float confidence;         // softmax conf
 
     [Header("References")]
-    public PlayerShooting playerShooting; // ✅ 인스펙터에서 연결
+    public PlayerShooting playerShooting; // 인스펙터 연결
+
+    // 내부
+    private UdpClient udp;
+    private IPEndPoint anyEndPoint;
+    private readonly Queue<SwingMsg> inbox = new Queue<SwingMsg>(); // 메인스레드 처리용 버퍼
+    private readonly object locker = new object();
 
     void Start()
     {
         udp = new UdpClient(port);
+        anyEndPoint = new IPEndPoint(IPAddress.Any, port);
         udp.BeginReceive(ReceiveData, null);
     }
 
-    void ReceiveData(System.IAsyncResult ar)
+    // 비-메인 스레드 콜백 → 큐에 적재
+    void ReceiveData(IAsyncResult ar)
     {
         try
         {
-            IPEndPoint end = new IPEndPoint(IPAddress.Any, port);
-            byte[] data = udp.EndReceive(ar, ref end);
+            byte[] data = udp.EndReceive(ar, ref anyEndPoint);
             string message = Encoding.UTF8.GetString(data);
 
-            // JSON 파싱
             SwingMsg msg = null;
             try
             {
@@ -53,21 +72,7 @@ public class PoseReceiver : MonoBehaviour
 
             if (msg != null && msg.swing)
             {
-                // Python -> Unity 매핑 보정
-                // Python: Overswing=1, Underswing=0
-                // 요청:   Over=0, Under=1  (반대로 매핑)
-                int incomingType = msg.type;
-                swingType01 = (incomingType == 1) ? 0 : 1;  // 1(Over)->0, 0(Under)->1
-                isUnder = (swingType01 == 1);
-
-                swingSpeed = msg.strength;
-                swingDetected = true;
-
-                Debug.Log($"[PoseReceiver] Swing detected | speed={swingSpeed:F2}, type01(Over=0,Under=1)={swingType01}, isUnder={isUnder}");
-            }
-            else
-            {
-                swingDetected = false;
+                lock (locker) inbox.Enqueue(msg);
             }
         }
         catch (Exception e)
@@ -76,52 +81,91 @@ public class PoseReceiver : MonoBehaviour
         }
         finally
         {
-            // 다음 패킷 대기
             try { udp.BeginReceive(ReceiveData, null); } catch { }
         }
     }
 
+    void OnDestroy()
+    {
+        try { udp?.Close(); } catch { }
+    }
+
     void Update()
     {
-        // 예시: 기존 로직은 Over 스윙(가정) 기준으로 작성되어 있으니 그대로 유지
-        // 필요 시 isUnder를 활용해 언더 스윙용 분기도 넣으면 됨.
-        if (swingDetected && playerShooting != null)
+        // 수신된 이벤트를 메인 스레드에서 처리
+        while (true)
         {
-            if (!isUnder)
+            SwingMsg msg = null;
+            lock (locker)
             {
-                // Over 스윙 처리 (요청 매핑 기준: swingType01 == 0)
-                if (swingSpeed >= 6f)
-                {
-                    Debug.Log("➡ OverStrong 실행 (속도 ≥ 6)");
-                    playerShooting.OverStrong();
-                }
-                else if (swingSpeed >= 3f)
-                {
-                    Debug.Log("➡ OverWeak 실행 (3 ≤ 속도 < 6)");
-                    playerShooting.OverWeak();
-                }
+                if (inbox.Count > 0) msg = inbox.Dequeue();
             }
-            else
-            {
-                // Under 스윙 처리 (필요 시 메서드가 있다면 호출)
-                // 아래는 예시. 실제로 PlayerShooting에 메서드가 없다면 주석 유지.
-                
-                if (swingSpeed >= 6f)
-                {
-                    Debug.Log("➡ UnderStrong 실행 (속도 ≥ 6)");
-                    playerShooting.UnderStrong();
-                }
-                else if (swingSpeed >= 3f)
-                {
-                    Debug.Log("➡ UnderWeak 실행 (3 ≤ 속도 < 6)");
-                    playerShooting.UnderWeak();
-                }
-                
-                Debug.Log($"[PoseReceiver] Under 스윙 감지됨 (speed={swingSpeed:F2}) — 전용 처리 로직을 연결하세요.");
-            }
+            if (msg == null) break;
 
-            // 중복 호출 방지
-            swingDetected = false;
+            // 신뢰도 필터
+            if (msg.conf < minConfidence) continue;
+
+            // 최신 상태 갱신
+            typeId = Mathf.Clamp(msg.type, 0, 4);
+            typeLabel = string.IsNullOrEmpty(msg.label) ? ((SwingClass)typeId).ToString() : msg.label;
+            confidence = msg.conf;
+            swingSpeed = msg.strength;
+
+            swingDetected = true;
+            HandleSwingByClass();   // 클래스→함수 디스패치
+            swingDetected = false;  // 중복 방지
+        }
+    }
+
+    // 모델 5클래스 → PlayerShooting 함수 매핑
+    // 0=Clear → Clear(), 1=Drive → Drive(), 2=Drop → Drop(),
+    // 3=Under → UnderStrong/UnderWeak(속도 분기), 4=Hairpin → Hairpin()
+    private void HandleSwingByClass()
+    {
+        if (playerShooting == null) return;
+
+        switch (typeId)
+        {
+            case (int)SwingClass.Clear:
+                Debug.Log($"➡ Clear (conf={confidence:F2})");
+                playerShooting.ClearSwing();
+                break;
+
+            case (int)SwingClass.Drive:
+                Debug.Log($"➡ Drive (conf={confidence:F2})");
+                playerShooting.DriveSwing();
+                break;
+
+            case (int)SwingClass.Drop:
+                Debug.Log($"➡ Drop (conf={confidence:F2})");
+                playerShooting.DropSwing();
+                break;
+
+            case (int)SwingClass.Under:
+                if (swingSpeed >= strongSpeed)
+                {
+                    Debug.Log($"➡ UnderStrong (speed={swingSpeed:F2}, conf={confidence:F2})");
+                    playerShooting.UnderSwing();
+                }
+                else if (swingSpeed >= weakSpeed)
+                {
+                    Debug.Log($"➡ UnderWeak (speed={swingSpeed:F2}, conf={confidence:F2})");
+                    playerShooting.Hairpin();
+                }
+                else
+                {
+                    Debug.Log($"➡ Under(too weak) skip (speed={swingSpeed:F2})");
+                }
+                break;
+
+            case (int)SwingClass.Hairpin:
+                Debug.Log($"➡ Hairpin (conf={confidence:F2})");
+                playerShooting.Hairpin();
+                break;
+
+            default:
+                Debug.LogWarning($"[PoseReceiver] Unknown class id: {typeId}");
+                break;
         }
     }
 }

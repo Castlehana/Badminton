@@ -22,6 +22,16 @@ public class EnemyShooting : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha3)) UnderStrong();
         if (Input.GetKeyDown(KeyCode.Alpha4)) UnderWeak();
 
+        //********** 추가 *********** 위에 스윙 함수들을 아래 함수들로 사용하시오
+        //if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) Clear();
+        //if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) Drop();
+        //if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) Hairpin();
+        //if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) Drive();
+        //if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) Under();
+        ////if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)) Smash();
+
+
+
         // Q를 누르면 Test 발사
         if (Input.GetKeyDown(KeyCode.Q))
         {
@@ -96,6 +106,17 @@ public class EnemyShooting : MonoBehaviour
         if (shuttlecocksInRange.Count == 0) return;
         LaunchToAll(0f, 60f, 10f, "UnderWeak", shuttlecocksInRange);
     }
+
+    //********** 추가 *********** 위에 스윙 함수들을 아래 함수들로 사용하시오
+    //public void Clear() => LaunchToAll(0f, 45f, 35f, "클리어", shuttlecocksInRange);
+    //public void Drop() => LaunchToAll(0f, 50f, 15f, "드롭", shuttlecocksInRange);
+    //public void Smash() => LaunchToAll(0f, -5f, 30f, "스매시", shuttlecocksInRange);
+    //public void Hairpin() => LaunchToAll(0f, 35f, 13f, "헤어핀", shuttlecocksInRange);
+    //public void Drive() => LaunchToAll(0f, 10f, 25f, "드라이브", shuttlecocksInRange);
+    //public void Serve() => LaunchToAll(0f, 45f, 20f, "서비스", shuttlecocksInRange);
+    //public void Under() => LaunchToAll(0f, 30f, 20f, "언더", shuttlecocksInRange);
+
+
 
     // (미사용) 트리거로 셔틀 목록 유지하던 로직 — 필요 시 재활성화 가능
     void OnTriggerEnter(Collider other)
