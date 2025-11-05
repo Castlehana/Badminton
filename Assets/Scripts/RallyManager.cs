@@ -6,10 +6,15 @@ public enum RallyState
 {
     Ready, Rallying, Ended
 }
+public enum ModeState
+{
+    Easy, Normal, Hard, Training
+}
 
 public class RallyManager : MonoBehaviour
 {
     public RallyState State;
+    public ModeState Mode;
 
     private bool isResetting = false;
 

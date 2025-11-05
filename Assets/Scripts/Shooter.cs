@@ -21,6 +21,9 @@ public class Shooter : MonoBehaviour
     public float minForce = 30f;
     public float maxForce = 60f;
 
+
+    public RallyManager rallyManager;
+
     private bool _spawnScheduled = false;
 
     void Update()
@@ -70,6 +73,9 @@ public class Shooter : MonoBehaviour
         if (sc != null)
         {
             sc.Launch(yaw, pitch, force);
+
+            // 랠리 시작 상태로 전환
+            rallyManager.State = RallyState.Rallying;
         }
         else
         {

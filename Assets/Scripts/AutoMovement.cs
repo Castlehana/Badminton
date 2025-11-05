@@ -38,7 +38,7 @@ public class AutoMovement : MonoBehaviour
         isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance + 0.1f, groundLayer);
 
         // 점프 입력 처리 (Y는 오직 여기서만 변함)
-        if (Input.GetKeyDown(KeyCode.Alpha7) && isGrounded)
+        if (Input.GetKeyDown(KeyCode.Alpha7) && isGrounded && rallyManager.State == RallyState.Rallying)
         {
             UnityEngine.Debug.Log("점프!!");
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
@@ -50,8 +50,11 @@ public class AutoMovement : MonoBehaviour
     {
         if (rallyManager != null && rallyManager.State == RallyState.Ready)
         {
-            rb.MovePosition(new Vector3(0f, 3f, 10f));
-            return;
+            if(rallyManager.Mode != ModeState.Training)
+            {
+                rb.MovePosition(new Vector3(0f, 3f, 10f));
+                return;
+            }
         }
 
         GameObject goalObj = GameObject.FindGameObjectWithTag("Goal");
