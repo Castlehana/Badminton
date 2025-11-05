@@ -19,22 +19,21 @@ public class PlayerShooting : MonoBehaviour
     public RallyManager rallyManager;
     public GameObject shuttlePrefab;
     public Transform spawnPoint;
+    public AutoMovement player;
 
     void Update()
     {
-        // 1~4 숫자 키 입력에 따른 4가지 스윙 재 구성
-        if (Input.GetKeyDown(KeyCode.Alpha1)) OverStrong();
-        if (Input.GetKeyDown(KeyCode.Alpha2)) OverWeak();
-        if (Input.GetKeyDown(KeyCode.Alpha3)) UnderStrong();
-        if (Input.GetKeyDown(KeyCode.Alpha4)) UnderWeak();
+        ////1~4 숫자 키 입력에 따른 4가지 스윙 재 구성
+        //if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) OverStrong();
+        //if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) OverWeak();
+        //if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) UnderStrong();
+        //if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) UnderWeak();
 
-        //if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) Clear();
-        //if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) Drop();
-        //if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) Smash();
-        //if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) Push();
-        //if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) Hairpin();
-        //if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)) Drive();
-        //if (Input.GetKeyDown(KeyCode.Alpha7) || Input.GetKeyDown(KeyCode.Keypad7)) Serve();
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) ClearSwing();
+        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) DropSwing();
+        if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) HairpinSwing();
+        if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) DriveSwing();
+        if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) UnderSwing();
 
         // Q를 누르면 Test 발사
         if (Input.GetKeyDown(KeyCode.Q))
@@ -89,30 +88,85 @@ public class PlayerShooting : MonoBehaviour
         //shuttlecocksInRange.Clear();
     }
 
-    public void Clear() => LaunchToAll(0f, 45f, 35f, "클리어", shuttlecocksInRange);
-    public void Drop() => LaunchToAll(0f, 60f, 15f, "드롭", shuttlecocksInRange);
-    public void Smash() => LaunchToAll(0f, -5f, 40f, "스매시", shuttlecocksInRange);
-    public void Push() => LaunchToAll(0f, -40f, 40f, "푸시", shuttlecocksInRange);
-    public void Hairpin() => LaunchToAll(0f, 60f, 9f, "헤어핀", shuttlecocksInRange);
-    public void Drive() => LaunchToAll(0f, 10f, 25f, "드라이브", shuttlecocksInRange);
-    public void Serve() => LaunchToAll(0f, 45f, 15f, "서비스", shuttlecocksInRange);
+    public void Clear() => LaunchToAll(0f, 180-45f, 35f, "클리어", shuttlecocksInRange);
+    public void Drop() => LaunchToAll(0f, 180 - 50f, 15f, "드롭", shuttlecocksInRange);
+    public void Smash() => LaunchToAll(0f, 180+5f, 30f, "스매시", shuttlecocksInRange);
+    //public void Push() => LaunchToAll(0f, -40f, 40f, "푸시", shuttlecocksInRange);
+    public void Hairpin() => LaunchToAll(0f, 180 - 35f, 13f, "헤어핀", shuttlecocksInRange);
+    public void Drive() => LaunchToAll(0f, 180 - 10f, 25f, "드라이브", shuttlecocksInRange);
+    public void Serve() => LaunchToAll(0f, 180 - 45f, 20f, "서비스", shuttlecocksInRange);
+    public void Under() => LaunchToAll(0f, 180 - 30f, 20f, "언더", shuttlecocksInRange);
 
-    public void OverStrong()
+    public void DriveSwing()
     {
         var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 170f, 25f, "OverStrong", targets);
+        // 점프 중 발동 시 스매시로 구분
+        if (player.isJumping)
+        {
+            Smash();
+        }
+        else
+        {
+            Drive();
+        }
     }
-    public void OverWeak()
+
+    public void ClearSwing() // OverStrong -> ClearSwing
     {
         var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 150f, 20f, "OverWeak", targets);
+        // 점프 중 발동 시 스매시로 구분
+        if (player.isJumping)
+        {
+            Smash();
+        }
+        else
+        {
+            Clear();
+        }
     }
-    public void UnderStrong()
+
+    //public void OverStrong()
+    //{
+    //    var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
+    //    if (targets.Count == 0) return;
+
+    //    // 점프 중 발동 시 스매시로 구분
+    //    if (player.isJumping)
+    //    {
+    //        LaunchToAll(0f, 180 - 0f, 30f, "Smash!!!", targets);
+    //    }
+    //    else
+    //    {
+    //        LaunchToAll(0f, 180 - 35f, 30f, "OverStrong", targets);
+    //    }
+    //}
+
+    
+    public void DropSwing() // OverWeak -> DropSwing
     {
+        var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
+        if (targets.Count == 0) return;
+
+        Drop();
+    }
+
+    //public void OverWeak()
+    //{
+    //    var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
+    //    if (targets.Count == 0) return;
+
+    //    LaunchToAll(0f, 180f-45f, 15f, "OverWeak", targets);
+    //}
+
+    public void UnderSwing() //UnderString -> UnderSwing
+    {
+        // 점프중엔 언더로 못침
+        if (player.isJumping) return;
+
         // 서브의 경우
         if (rallyManager.State == RallyState.Ready)
         {
@@ -120,7 +174,7 @@ public class PlayerShooting : MonoBehaviour
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
 
-            shuttle.Launch(0f, 135f, 15f);
+            shuttle.Launch(0f, 180 - 45f, 20f);
 
             rallyManager.State = RallyState.Rallying;
 
@@ -130,10 +184,40 @@ public class PlayerShooting : MonoBehaviour
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 135f, 20f, "UnderStrong", targets);
+        Under();
     }
-    public void UnderWeak()
+
+    //public void UnderSwing()
+    //{
+    //    // 점프중엔 언더로 못침
+    //    if (player.isJumping) return;
+
+    //    // 서브의 경우
+    //    if (rallyManager.State == RallyState.Ready)
+    //    {
+    //        UnityEngine.Debug.Log("서브!!");
+    //        GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
+    //        Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
+
+    //        shuttle.Launch(0f, 180f - 45f, 15f);
+
+    //        rallyManager.State = RallyState.Rallying;
+
+    //        return;
+    //    }
+
+    //    var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
+    //    if (targets.Count == 0) return;
+
+    //    LaunchToAll(0f, 180f - 50f, 35f, "UnderStrong", targets);
+    //}
+
+
+    public void HairpinSwing() //UnderWeak -> HairpinSwing
     {
+        // 점프중엔 언더로 못침
+        if (player.isJumping) return;
+
         // 서브의 경우
         if (rallyManager.State == RallyState.Ready)
         {
@@ -141,7 +225,7 @@ public class PlayerShooting : MonoBehaviour
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
 
-            shuttle.Launch(0f, 135f, 15f);
+            shuttle.Launch(0f, 180f - 45f, 20f);
 
             rallyManager.State = RallyState.Rallying;
 
@@ -151,10 +235,37 @@ public class PlayerShooting : MonoBehaviour
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
-        LaunchToAll(0f, 120f, 10f, "UnderWeak", targets);
+        Hairpin();
     }
+
+    //public void UnderWeak()
+    //{
+    //    // 점프중엔 언더로 못침
+    //    if (player.isJumping) return;
+
+    //    // 서브의 경우
+    //    if (rallyManager.State == RallyState.Ready)
+    //    {
+    //        UnityEngine.Debug.Log("서브!!");
+    //        GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
+    //        Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
+
+    //        shuttle.Launch(0f, 180f - 45f, 20f);
+
+    //        rallyManager.State = RallyState.Rallying;
+
+    //        return;
+    //    }
+
+    //    var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
+    //    if (targets.Count == 0) return;
+
+    //    LaunchToAll(0f, 180f - 60f, 15f, "UnderWeak", targets);
+    //}
 
     // 사용하지 않게됨
+
+
     void OnTriggerEnter(Collider other)
     {
         Shuttlecock sc = other.GetComponent<Shuttlecock>();

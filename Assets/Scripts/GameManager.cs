@@ -46,7 +46,7 @@ public class GameManager : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.RightBracket)) Nudge(+0.1f);
 
         // Space: 일시정지 토글
-        if (Input.GetKeyDown(KeyCode.Space)) TogglePause();
+        //if (Input.GetKeyDown(KeyCode.Space)) TogglePause();
 
         // 마우스 휠로 미세 조절
         float wheel = Input.GetAxis("Mouse ScrollWheel");
