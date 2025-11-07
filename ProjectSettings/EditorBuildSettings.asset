@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Scenes/SampleSceneASW.unity
     guid: 19ed4e737fe6f3d44a876bb2a796abe4
   - enabled: 1
-    path: Assets/Scenes/SelectModeMenu.unity
+    path: Assets/Scenes/KBS/SelectModeMenu.unity
     guid: b7f29b4c4ad061c45b58cd1c92c9a751
   - enabled: 1
     path: Assets/Scenes/Map by Difficulty/Easy_GameMap.unity
@@ -20,4 +20,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Map by Difficulty/Normal_GameMap.unity
     guid: d57f5b0022feef246a190feda63f5f2d
+  - enabled: 1
+    path: Assets/Scenes/KBS/LoseScene.unity
+    guid: f5c33a4cd6f4a8d44a9275321bb67c1f
+  - enabled: 1
+    path: Assets/Scenes/KBS/WinScene.unity
+    guid: 01bd6d1e86579964ea48231e74c51772
   m_configObjects: {}

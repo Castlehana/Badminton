@@ -168,7 +168,7 @@ public class PlayerShooting : MonoBehaviour
         if (player.isJumping) return;
 
         // 서브의 경우
-        if (rallyManager.State == RallyState.Ready)
+        if ((rallyManager.State == RallyState.Ready) && (rallyManager.Turn == ServeTurn.MyTurn))
         {
             UnityEngine.Debug.Log("서브!!");
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
@@ -219,7 +219,7 @@ public class PlayerShooting : MonoBehaviour
         if (player.isJumping) return;
 
         // 서브의 경우
-        if (rallyManager.State == RallyState.Ready)
+        if ((rallyManager.State == RallyState.Ready) && (rallyManager.Turn == ServeTurn.MyTurn))
         {
             UnityEngine.Debug.Log("서브!!");
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
