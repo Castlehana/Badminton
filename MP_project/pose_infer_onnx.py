@@ -3,8 +3,9 @@
 # - 모델 스윙 판단과 무관하게, "코(Nose)"의 y값이 순간적으로 크게 **감소(위로 이동)** 하면 화면 아래에 빨간 글씨로 "JUMP!" 표시
 # - 점프 판정:
 #     · Mediapipe Pose의 landmark[0] (Nose)의 y좌표 사용(0~1, 화면 위로 갈수록 값 감소)
-#     · 직전 프레임 대비 (dy/dt)가 **음수**이고, 그 크기(-dy/dt)가 jump_thr(기본 0.60 1/s) 이상이면 점프로 간주
-#     · jump_hold(기본 0.5s) 동안 화면 하단 중앙에 빨간색 "JUMP!" 표시
+#     · 직전 프레임 대비 (dy/dt)가 **음수**이고, 그 크기(-dy/dt)가 jump_thr 이상이면 점프로 간주
+#     · jump_hold 동안 화면 하단 중앙에 빨간색 "JUMP!" 표시
+# - ★추가★ 점프 트리거 발생 시 스윙과 별개로 UDP로 {"jump":true,"speed":...,"ts":...} 전송
 
 import argparse, time, json, socket, math, sys
 from collections import deque
@@ -250,6 +251,7 @@ def main():
     # 점프 감지 전용 옵션 (y 감소=위로 이동)
     ap.add_argument("--jump_thr", type=float, default=2.00, help="점프 임계값( -dy/dt >= jump_thr 이면 점프, 단위 1/s )")
     ap.add_argument("--jump_hold", type=float, default=0.50, help="점프 표시 유지 시간(초)")
+    ap.add_argument("--jump_send_cooldown", type=float, default=0.30, help="점프 UDP 연속 전송 쿨다운(초)")  # ★추가★
     args = ap.parse_args()
 
     # 메타
@@ -303,6 +305,7 @@ def main():
     # 점프 감지 상태
     prev_nose_y = None
     last_jump_ts = -1e9
+    last_jump_send_ts = -1e9   # ★추가★ 전송 쿨다운 관리
 
     while cap.isOpened():
         ok, frame = cap.read()
@@ -326,8 +329,17 @@ def main():
             if prev_nose_y is not None and dt_ema > 0:
                 dy = nose_y - prev_nose_y          # 감소(위로)면 dy < 0
                 dydt = dy / dt_ema                  # 1/s
-                if (-dydt) >= args.jump_thr:        # ← y가 빠르게 감소(위로 이동)하면 점프
+                # 점프 트리거
+                if (-dydt) >= args.jump_thr:
                     last_jump_ts = t_now
+                    # ★추가★ 점프 신호 UDP 전송 (스윙과 독립)
+                    if (t_now - last_jump_send_ts) >= args.jump_send_cooldown:
+                        jump_pkt = {"jump": True, "speed": round(-dydt, 4), "ts": round(t_now, 3)}
+                        try:
+                            sock.sendto(json.dumps(jump_pkt).encode("utf-8"), (args.ip, args.port))
+                        except Exception as e:
+                            print(f"[WARN] UDP send failed (jump): {e}", file=sys.stderr)
+                        last_jump_send_ts = t_now
             prev_nose_y = nose_y
             # -----------------------------------------------
 

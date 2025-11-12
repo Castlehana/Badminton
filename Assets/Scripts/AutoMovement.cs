@@ -40,10 +40,15 @@ public class AutoMovement : MonoBehaviour
         // 점프 입력 처리 (Y는 오직 여기서만 변함)
         if (Input.GetKeyDown(KeyCode.Alpha7) && isGrounded && rallyManager.State == RallyState.Rallying)
         {
-            UnityEngine.Debug.Log("점프!!");
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            Jump();
         }
 
+    }
+
+    public void Jump()
+    {
+        UnityEngine.Debug.Log("점프!!");
+        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
     }
 
     void FixedUpdate()
