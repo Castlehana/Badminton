@@ -46,6 +46,8 @@ public class Shuttlecock : MonoBehaviour
         rb.useGravity = false;
         rb.drag = 0;
         rb.angularDrag = 0;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
 
         // SphereCollider만 충돌 허용   --> 이부분 수정으로 플레이어의 콜라이더를 구분할 수 있을까??(범)
         foreach (var player in GameObject.FindGameObjectsWithTag("Player"))

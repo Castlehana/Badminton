@@ -35,7 +35,7 @@ public class RallyManager : MonoBehaviour
         yield return new WaitForSeconds(1.0f);
 
         // test here
-        State = RallyState.Ready;
+        //State = RallyState.Ready;
 
         isResetting = false;
     }
