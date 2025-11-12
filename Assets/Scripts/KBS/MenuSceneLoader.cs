@@ -11,7 +11,7 @@ public class MenuSceneLoader : MonoBehaviour
     [SerializeField] private string hardScene = "Hard_GameMap";
     [SerializeField] private string trainingScene = "Training_GameMap";
     [SerializeField] private string achievementScene = "AchievementScene";
-    [SerializeField] private string dataFileScene = "dataFileScene";
+    [SerializeField] private string dataFileScene = "SaveDataMenu";
     [SerializeField] private string selectModeScene = "SelectModeMenu";
     [SerializeField] private string winScene = "WinScene";
     [SerializeField] private string loseScene = "LoseScene";
