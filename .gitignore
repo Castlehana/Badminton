@@ -14,6 +14,9 @@
 
 # Ignore raw video dataset
 /MP_project/dataset/raw_videos/
+/MP_project/venv/
+/MP_project/dist/
+/MP_project/build/
 
 # By default unity supports Blender asset imports, *.blend1 blender files do not need to be commited to version control.
 *.blend1

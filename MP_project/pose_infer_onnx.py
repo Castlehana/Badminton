@@ -14,6 +14,19 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import onnxruntime as ort
+import os  # <<< 추가
+
+# ===================== PyInstaller 리소스 경로 유틸 =====================
+def resource_path(relative_path: str) -> str:
+    """
+    PyInstaller --onefile(exe)와 일반 파이썬 실행 양쪽에서
+    tcn.onnx, tcn_meta.json 같은 리소스 파일 경로를 안전하게 찾기 위한 헬퍼.
+    """
+    if hasattr(sys, "_MEIPASS"):
+        base_path = sys._MEIPASS  # exe가 풀려 있는 임시 폴더
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 # ===================== 상수/기본값 =====================
 DEF_T    = 33              # 학습/클립 길이(03과 일치)
@@ -491,8 +504,9 @@ def main():
 
     print(f"[INFO] 최종 선택 카메라: Device {chosen_dev}")
 
-    # ===== 메타 로드 =====
-    with open(args.meta, "r", encoding="utf-8") as f:
+    # ===== 메타 로드 (PyInstaller 대응: resource_path 사용) =====
+    meta_path = resource_path(args.meta)
+    with open(meta_path, "r", encoding="utf-8") as f:
         meta = json.load(f)
     classes = meta["classes"]
     D       = int(meta["feat_dim"])
@@ -503,9 +517,10 @@ def main():
     std = np.asarray(meta["zscore_std"], dtype=np.float32)
     std = np.where(np.abs(std) < 1e-8, 1.0, std)
 
-    # ONNX & UDP
+    # ONNX & UDP (PyInstaller 대응: resource_path 사용)
     try:
-        sess = ort.InferenceSession(args.onnx,
+        onnx_path = resource_path(args.onnx)
+        sess = ort.InferenceSession(onnx_path,
                                     providers=["CPUExecutionProvider"])
     except Exception as e:
         print(f"[ERROR] ONNX 로드 실패: {e}", file=sys.stderr)
