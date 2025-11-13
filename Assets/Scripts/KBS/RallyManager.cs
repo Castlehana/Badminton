@@ -158,12 +158,32 @@ public class RallyManager : MonoBehaviour
     {
         if (Mathf.Abs(myScore - aiScore) >= 2 && myScore >= gamePoint)
         {
+            // achv 수정
+            var mgr = SaveManager.Instance;
+            if (mgr != null && mgr.Current != null)
+            {
+                mgr.Current.achv.totalWins++;
+                // 연승 계산
+                mgr.Current.achv.streak++;
+                mgr.Current.achv.highestStreak = Mathf.Max(mgr.Current.achv.highestStreak, mgr.Current.achv.streak);
+                mgr.Save();
+            }
+
             UnityEngine.Debug.Log("You Win!");
             menuSceneLoader.LoadWinScene();
             return;
         }
         else if (Mathf.Abs(myScore - aiScore) >= 2 && aiScore >= gamePoint)
         {
+            // achv 수정
+            var mgr = SaveManager.Instance;
+            if (mgr != null && mgr.Current != null)
+            {
+                mgr.Current.achv.totalLoses++;
+                mgr.Current.achv.streak = 0;
+                mgr.Save();
+            }
+
             UnityEngine.Debug.Log("You Lose!");
             menuSceneLoader.LoadLoseScene();
             return;

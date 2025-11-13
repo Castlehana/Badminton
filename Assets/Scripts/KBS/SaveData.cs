@@ -10,6 +10,9 @@ public class AchievementData
 {
     public int totalWins;
     public int totalLoses;
+
+    public int streak; // 현재 연승
+    public int highestStreak;   // 최고 연승
     // 계속 추가
 }
 
