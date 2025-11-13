@@ -5,7 +5,7 @@ a = Analysis(
     ['pose_infer_onnx.py'],
     pathex=[],
     binaries=[],
-    datas=[('tcn.onnx', '.'), ('tcn_meta.json', '.'), ('C:\\Users\\tjddn\\venv\\Lib\\site-packages\\mediapipe\\modules', 'mediapipe\\modules')],
+    datas=[('tcn.onnx', '.'), ('tcn_meta.json', '.'), ('C:\\Users\\tjddn\\Documents\\GitHub\\Badminton\\MP_project\\venv\\Lib\\site-packages\\mediapipe\\modules', 'mediapipe\\modules')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
