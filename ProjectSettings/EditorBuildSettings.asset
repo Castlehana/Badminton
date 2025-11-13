@@ -32,4 +32,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/KBS/AchievementScene.unity
     guid: 01bd6d1e86579964ea48231e74c51772
+  - enabled: 1
+    path: Assets/Scenes/KBS/WinScene.unity
+    guid: 7409eff349ac559448d0a51b9948d5bf
   m_configObjects: {}
