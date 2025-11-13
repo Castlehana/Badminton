@@ -26,6 +26,8 @@ public class RallyManager : MonoBehaviour
     public int myScore = 0;
     public int aiScore = 0;
 
+    public int gamePoint = 5;
+
     public GameObject shuttlePrefab;
     Vector3 aiServePoint = new Vector3(0f, 3f, -7.5f);
 
@@ -154,13 +156,13 @@ public class RallyManager : MonoBehaviour
     }
     public void ScoreCheck()
     {
-        if (Mathf.Abs(myScore - aiScore) >= 2 && myScore >= 21)
+        if (Mathf.Abs(myScore - aiScore) >= 2 && myScore >= gamePoint)
         {
             UnityEngine.Debug.Log("You Win!");
             menuSceneLoader.LoadWinScene();
             return;
         }
-        else if (Mathf.Abs(myScore - aiScore) >= 2 && aiScore >= 21)
+        else if (Mathf.Abs(myScore - aiScore) >= 2 && aiScore >= gamePoint)
         {
             UnityEngine.Debug.Log("You Lose!");
             menuSceneLoader.LoadLoseScene();

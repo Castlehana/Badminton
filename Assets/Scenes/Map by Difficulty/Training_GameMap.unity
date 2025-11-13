@@ -1654,6 +1654,8 @@ MonoBehaviour:
   achievementScene: AchievementScene
   dataFileScene: dataFileScene
   selectModeScene: SelectModeMenu
+  winScene: WinScene
+  loseScene: LoseScene
 --- !u!4 &987021554
 Transform:
   m_ObjectHideFlags: 0
@@ -2459,6 +2461,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   State: 0
   Mode: 3
+  Turn: 0
+  myScore: 0
+  aiScore: 0
+  shuttlePrefab: {fileID: 0}
+  playerText: {fileID: 0}
+  opponentText: {fileID: 0}
+  menuSceneLoader: {fileID: 0}
 --- !u!4 &1706466913
 Transform:
   m_ObjectHideFlags: 0
@@ -2765,14 +2774,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   port: 5052
   minConfidence: 0.45
-  weakSpeed: 3
-  strongSpeed: 6
   swingDetected: 0
-  swingSpeed: 0
   typeId: 0
   typeLabel: 
   confidence: 0
+  jumpDetected: 0
+  lastJumpSpeed: 0
   playerShooting: {fileID: 1741582305}
+  autoMovement: {fileID: 1741582308}
 --- !u!1 &1862174548
 GameObject:
   m_ObjectHideFlags: 0
