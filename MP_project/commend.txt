@@ -17,3 +17,17 @@ python scripts/06_export_onnx.py
 python pose_infer_onnx.py
 
 python pose_infer_onnx_videotest.py
+
+cd C:\Users\tjddn\Documents\GitHub\Badminton\MP_project
+venv\Scripts\activate
+
+cd C:\Users\tjddn\Documents\GitHub\Badminton\MP_project
+venv\Scripts\activate
+
+pyinstaller ^
+  --onefile ^
+  --name pose_infer_onnx ^
+  --add-data "tcn.onnx;." ^
+  --add-data "tcn_meta.json;." ^
+  --add-data "C:\Users\tjddn\venv\Lib\site-packages\mediapipe\modules;mediapipe\modules" ^
+  pose_infer_onnx.py
