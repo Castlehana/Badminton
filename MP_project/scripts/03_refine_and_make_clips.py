@@ -1,8 +1,9 @@
 # scripts/03_refine_and_make_clips.py
-# - 이벤트 CSV가 start/end 구간을 포함하면: "해당 구간 내부"에서만 피크 탐색 → 스윙 5종 클립 생성
-# - REC 바깥(complement) 구간에서 저속/안정 구간을 자동 샘플 → Idle 클립 생성
-# - 관절: 16(R-Wrist), 14(R-Elbow), 12(R-Shoulder), 15(L-Wrist)
-# - 정규화: 중심=R-Shoulder(12), 스케일=|Shoulder(12)-Elbow(14)| (상완 길이)
+# (T=25, asymmetric window = 16(before) + 1(peak) + 8(after), PEAK INCLUDED)
+# - 스윙: 이벤트 구간 내부(또는 포인트 라벨 주변)에서 속도 피크 k를 찾고
+#         [k-16 ... k ... k+8] 총 25프레임을 잘라 특징을 생성
+# - Idle: 보완(complement) 구간의 저속 프레임 k를 골라 동일한 비율(16|1|8)로 슬라이싱
+# - 정규화: 중심=R-Shoulder(12), 스케일=|Shoulder(12)-Elbow(14)|
 # - 특징 16D: [x,y, vx,vy, v, ax,ay, theta, front, d_ws, d_we, d_wl, dtheta, phi_shoulder(0), theta_rel, ang_elbow]
 # - 출력: dataset/clips/raw/class=<CLS>/<base>_<startidx>.npz (X:(T,16), y, meta(json))
 
@@ -10,37 +11,31 @@ import os, sys, json, re
 import numpy as np
 import pandas as pd
 
-# =========================
-# 하이퍼파라미터 / 상수
-# =========================
-T = 33
-SEARCH_SEC_DEFAULT = 0.7
+PRE_FR  = 16
+POST_FR = 8
+T = PRE_FR + 1 + POST_FR  # 25
+
+SEARCH_SEC_DEFAULT  = 0.7
 SEARCH_SEC_FALLBACK = 1.5
-VIS_THR = 0.5           # mediapipe visibility 임계
-WRIST_BAD_THR = 0.5     # 구간 내 wrist visibility < VIS_THR 비율이 이 값 이상이면 elbow 속도 사용
+VIS_THR        = 0.5
+WRIST_BAD_THR  = 0.5
 
-# Idle 자동 생성 파라미터
-IDLE_ENABLED   = True
-IDLE_RATIO     = 1.0      # Idle 개수 ≈ (스윙 개수 * 비율)
-MARGIN_SEC     = 0.40     # REC 경계로부터 띄우는 마진
-W_LOW          = 5        # 저속 판정 평균창 길이(프레임)
-V_IDLE_MAX_W   = 0.25     # 손목 속도 상한(정규화/초)
-V_IDLE_MAX_E   = 0.20     # 팔꿈치 속도 상한(정규화/초)
+IDLE_ENABLED = True
+IDLE_RATIO   = 1.0
+MARGIN_SEC   = 0.40
+W_LOW        = 5
+V_IDLE_MAX_W = 0.25
+V_IDLE_MAX_E = 0.20
 
-# Mediapipe Pose 인덱스
 IDX_R_SHOULDER = 12
 IDX_R_ELBOW    = 14
 IDX_R_WRIST    = 16
 IDX_L_WRIST    = 15
 
-# 클래스(Idle 포함)
 CLASSES = ['Clear', 'Drive', 'Drop', 'Under', 'Hairpin', 'Idle']
-CLS2ID = {c:i for i,c in enumerate(CLASSES)}
+CLS2ID  = {c:i for i,c in enumerate(CLASSES)}
 
-# =========================
-# 유틸리티
-# =========================
-def _interp(a: np.ndarray) -> np.ndarray:
+def _interp(a):
     if a.size == 0:
         return a
     s = pd.Series(a).interpolate(limit_direction='both')
@@ -48,7 +43,7 @@ def _interp(a: np.ndarray) -> np.ndarray:
         return np.zeros_like(a, dtype='float64')
     return s.to_numpy()
 
-def _ensure_monotonic_t(t: np.ndarray) -> np.ndarray:
+def _ensure_monotonic_t(t):
     t = np.asarray(t).astype('float64')
     if t.size >= 2 and (np.diff(t) <= 0).any():
         t = t + np.linspace(0, 1e-6, len(t))
@@ -61,7 +56,7 @@ def _speed(t, x, y):
     t = _ensure_monotonic_t(t)
     vx = np.gradient(xi, t, edge_order=1)
     vy = np.gradient(yi, t, edge_order=1)
-    v = np.hypot(vx, vy)
+    v  = np.hypot(vx, vy)
     return v, vx, vy
 
 def _accel(t, vx, vy):
@@ -85,15 +80,12 @@ def _subject_from_name(name: str) -> str:
     m = re.search(r'(S\d{3})', name) or re.search(r'(S\d+)', name)
     return m.group(1) if m else 'UNK'
 
-# =========================
-# 정규화(어깨 중심, 상완 길이)
-# =========================
 def _shoulder_norm(df: pd.DataFrame) -> pd.DataFrame:
     x12 = _get(df, 'x12', np.nan); y12 = _get(df, 'y12', np.nan)
     x14 = _get(df, 'x14', np.nan); y14 = _get(df, 'y14', np.nan)
 
     cx, cy = x12, y12
-    scale = np.hypot(x12 - x14, y12 - y14) + 1e-6  # 상완 길이
+    scale = np.hypot(x12 - x14, y12 - y14) + 1e-6
 
     out = {}
     need = [IDX_R_SHOULDER, IDX_R_ELBOW, IDX_R_WRIST, IDX_L_WRIST]
@@ -110,38 +102,28 @@ def _shoulder_norm(df: pd.DataFrame) -> pd.DataFrame:
     out['t'] = df['t']
     return pd.DataFrame(out)
 
-# =========================
-# 특징 16D 생성
-# =========================
 def _make_features(seg_n: pd.DataFrame) -> np.ndarray:
     arr = {k: seg_n[k].to_numpy() for k in seg_n.columns}
     t = _ensure_monotonic_t(arr['t'])
 
-    # 기준: 오른손목
     x = arr['x16n']; y = arr['y16n']
     v, vx, vy = _speed(t, x, y)
     if v.size == 0:
         return np.zeros((len(seg_n), 16), dtype='float32')
     ax, ay = _accel(t, vx, vy)
 
-    # 각도(어깨→손목)
     dx = arr['x16n'] - arr['x12n']; dy = arr['y16n'] - arr['y12n']
-    theta = np.arctan2(dy, dx)
+    theta  = np.arctan2(dy, dx)
     dtheta = np.gradient(theta, t, edge_order=1)
-
-    # front: 어깨 중심 정규화 → 손목 x가 0 이상이면 전방(오른쪽)
     front = (arr['x16n'] >= 0).astype(float)
 
-    # 거리들
-    d_ws = np.hypot(arr['x16n']-arr['x12n'], arr['y16n']-arr['y12n'])  # wrist-shoulder
-    d_we = np.hypot(arr['x16n']-arr['x14n'], arr['y16n']-arr['y14n'])  # wrist-elbow
-    d_wl = np.hypot(arr['x16n']-arr['x15n'], arr['y16n']-arr['y15n'])  # wrist-left_wrist
+    d_ws = np.hypot(arr['x16n']-arr['x12n'], arr['y16n']-arr['y12n'])
+    d_we = np.hypot(arr['x16n']-arr['x14n'], arr['y16n']-arr['y14n'])
+    d_wl = np.hypot(arr['x16n']-arr['x15n'], arr['y16n']-arr['y15n'])
 
-    # phi_shoulder 사용하지 않음 → 0, 상대각 = theta
     phi_shoulder = np.zeros_like(theta)
     theta_rel = _wrap_pi(theta - phi_shoulder)
 
-    # 팔꿈치 내각(12-14-16)
     sx, sy = arr['x12n'], arr['y12n']
     ex, ey = arr['x14n'], arr['y14n']
     wx, wy = arr['x16n'], arr['y16n']
@@ -159,9 +141,6 @@ def _make_features(seg_n: pd.DataFrame) -> np.ndarray:
     ], axis=1).astype('float32')
     return feats
 
-# =========================
-# 이벤트 로더 (구간/포인트 지원)
-# =========================
 def _read_events(evt_csv):
     ev = pd.read_csv(evt_csv)
     if {'start_sec','end_sec','class'}.issubset(ev.columns) and len(ev)>0:
@@ -180,9 +159,6 @@ def _read_events(evt_csv):
         raise RuntimeError(f'invalid events CSV schema: {evt_csv}')
     return mode, events
 
-# =========================
-# 피크 탐색(포인트 라벨용)
-# =========================
 def _pick_peak(t, v_wrist, v_elbow, vis_wrist, t0):
     def _search(win):
         lo, hi = t0 - win, t0 + win
@@ -197,14 +173,18 @@ def _pick_peak(t, v_wrist, v_elbow, vis_wrist, t0):
         bad = (vis_wrist[idx] < VIS_THR).mean()
         if bad >= WRIST_BAD_THR:
             use_elbow = True
-    k = idx[np.nanargmax((v_elbow if use_elbow else v_wrist)[idx])]
+    seq = v_elbow if use_elbow else v_wrist
+    k = idx[np.nanargmax(seq[idx])]
     return k, use_elbow
 
-def _slice_T_centered_at_peak(peak_idx, total_len, T):
-    half = T // 2
-    start = peak_idx - half
-    end   = peak_idx + half + 1
-    if start < 0 or end > total_len: 
+def _slice_asym_around_peak(peak_idx, total_len, pre=PRE_FR, post=POST_FR, include_peak=True):
+    if include_peak:
+        start = peak_idx - pre
+        end   = peak_idx + post + 1
+    else:
+        start = peak_idx - pre
+        end   = peak_idx + post
+    if start < 0 or end > total_len:
         return None
     return np.arange(start, end)
 
@@ -215,15 +195,11 @@ def _save_npz(out_dir, cls, lmk_name, start_idx, X, y, meta, tag=''):
     out_name = f'{base}_{start_idx}{tag}.npz'
     np.savez_compressed(os.path.join(cls_dir, out_name), X=X, y=y, meta=json.dumps(meta))
 
-# =========================
-# Idle 보완 구간 처리
-# =========================
 def _windows_from_complement(t, rec_list):
-    """REC 구간(start,end)들의 보완(complement) 구간 반환"""
     if len(t) == 0:
         return []
     T0, T1 = float(t[0]), float(t[-1])
-    rec = sorted(rec_list)  # [(s,e), ...]
+    rec = sorted(rec_list)
     out = []
     cur = T0
     for s, e in rec:
@@ -237,7 +213,6 @@ def _windows_from_complement(t, rec_list):
     return [(a, b) for a, b in out if (b - a) > 2 * MARGIN_SEC]
 
 def _low_motion_mask(vw, ve, k, w=W_LOW, vmax_w=V_IDLE_MAX_W, vmax_e=V_IDLE_MAX_E):
-    """최근 w프레임 평균 속도가 모두 낮으면 Idle 후보"""
     if k+1 < w:
         return False
     mw = float(np.mean(vw[k-w+1:k+1]))
@@ -246,26 +221,23 @@ def _low_motion_mask(vw, ve, k, w=W_LOW, vmax_w=V_IDLE_MAX_W, vmax_e=V_IDLE_MAX_
 
 def _gen_idle_clips(dfn, t, v_wrist, v_elbow, rec_intervals, n_target, out_dir, lmk_path, evt_csv, meta_base):
     idle_count = 0
-    comp = _windows_from_complement(t, rec_intervals)   # [(start,end), ...]
+    comp = _windows_from_complement(t, rec_intervals)
     if not comp:
         return 0
 
-    # 보완 구간에서 프레임 인덱스 마스크
     idx_comp = np.zeros(len(t), dtype=bool)
     for a, b in comp:
         idx_comp |= ((t >= a) & (t <= b))
 
-    # 저속 프레임 인덱스 후보
     low_idx = [i for i in range(len(t)) if idx_comp[i] and _low_motion_mask(v_wrist, v_elbow, i)]
     if len(low_idx) == 0:
         return 0
 
-    # 간격을 두고 고르게 샘플링
     step = max(1, len(low_idx) // max(1, n_target))
     picked = low_idx[::step][:max(1, n_target)]
 
     for k in picked:
-        idxs = _slice_T_centered_at_peak(k, len(t), T)  # 피크와 동일한 center-cut 재사용
+        idxs = _slice_asym_around_peak(k, len(t), pre=PRE_FR, post=POST_FR, include_peak=True)
         if idxs is None:
             continue
         seg_n = dfn.iloc[idxs].reset_index(drop=True)
@@ -277,9 +249,16 @@ def _gen_idle_clips(dfn, t, v_wrist, v_elbow, rec_intervals, n_target, out_dir, 
             'class': 'Idle',
             'class_id': int(y),
             't_label': float(t[k]),
-            't_peak': float(t[k]),           # Idle은 의미적 피크 없음 → 중심시간 기록
+            't_peak': float(t[k]),
             'start_idx': int(idxs[0]),
             'used_joint': 'none',
+            'T': int(T),
+            'feat_dim': int(X.shape[1]),
+            'peak_pos': 'asymmetric(16|1|8)',
+            'pre': int(PRE_FR),
+            'post': int(POST_FR),
+            'causal': False,
+            'include_peak': True
         })
         _save_npz(out_dir, 'Idle', lmk_path, int(idxs[0]), X, y, meta)
         idle_count += 1
@@ -287,9 +266,6 @@ def _gen_idle_clips(dfn, t, v_wrist, v_elbow, rec_intervals, n_target, out_dir, 
             break
     return idle_count
 
-# =========================
-# 메인 처리
-# =========================
 def process_pair(lmk_path, evt_csv, out_dir):
     df = pd.read_parquet(lmk_path)
     if 't' not in df.columns or len(df) == 0:
@@ -297,7 +273,6 @@ def process_pair(lmk_path, evt_csv, out_dir):
     if len(df['t'].unique()) < 2:
         print(f'[WARN] too few timestamps (<2) -> skip: {os.path.basename(lmk_path)}'); return
 
-    # 이벤트 로드
     try:
         mode, evs = _read_events(evt_csv)
     except Exception as e:
@@ -307,11 +282,9 @@ def process_pair(lmk_path, evt_csv, out_dir):
         print(f'[WARN] no valid events -> skip: {os.path.basename(evt_csv)}')
         return
 
-    # 정규화 좌표
     dfn = _shoulder_norm(df)
     t = dfn['t'].to_numpy()
 
-    # 원 좌표(속도/가시도 계산용)
     x16 = _get(df, 'x16', np.nan).to_numpy()
     y16 = _get(df, 'y16', np.nan).to_numpy()
     v16 = _get(df, 'v16', 1.0).to_numpy()
@@ -330,19 +303,16 @@ def process_pair(lmk_path, evt_csv, out_dir):
     refined_rows = [('t_label_or_start','class','t_peak','used_joint')]
     made_swing = 0
 
-    # ===== 스윙(REC) 처리 =====
     for e in evs:
         cls = e['class']
         if cls not in CLS2ID or cls == 'Idle':
             continue
 
-        # 구간 기반
         if mode == 'interval':
             start, end = float(e['start']), float(e['end'])
             idx = np.where((t >= start) & (t <= end))[0]
             if len(idx) == 0:
                 continue
-            # wrist 가시도 품질로 elbow 대체 여부 판단
             use_elbow = False
             bad = (v16[idx] < VIS_THR).mean() if v16 is not None and len(idx)>0 else 0.0
             if bad >= WRIST_BAD_THR:
@@ -350,8 +320,6 @@ def process_pair(lmk_path, evt_csv, out_dir):
             seq = v_elbow if use_elbow else v_wrist
             k = idx[np.nanargmax(seq[idx])]
             t0_for_log = start
-
-        # 포인트 라벨 모드
         else:
             t0 = float(e['t0'])
             k, use_elbow = _pick_peak(t, v_wrist, v_elbow, v16, t0)
@@ -359,13 +327,12 @@ def process_pair(lmk_path, evt_csv, out_dir):
                 continue
             t0_for_log = t0
 
-        # 피크 중심 T=33 슬라이스
-        idxs = _slice_T_centered_at_peak(k, len(t), T)
+        idxs = _slice_asym_around_peak(k, len(t), pre=PRE_FR, post=POST_FR, include_peak=True)
         if idxs is None:
             continue
 
         seg_n = dfn.iloc[idxs].reset_index(drop=True)
-        X = _make_features(seg_n)                 # (T=33, 16)
+        X = _make_features(seg_n)
         y = np.int64(CLS2ID[cls])
         meta = {
             'class': cls,
@@ -380,22 +347,23 @@ def process_pair(lmk_path, evt_csv, out_dir):
             'used_joint': 'elbow' if use_elbow else 'wrist',
             'T': int(T),
             'feat_dim': int(X.shape[1]),
-            'peak_pos': 'center'
+            'peak_pos': 'asymmetric(16|1|8)',
+            'pre': int(PRE_FR),
+            'post': int(POST_FR),
+            'causal': False,
+            'include_peak': True
         }
-
         _save_npz(out_dir, cls, lmk_path, int(idxs[0]), X.astype('float32'), y, meta)
         refined_rows.append((round(t0_for_log,3), cls, round(float(t[k]),3),
                              'elbow' if use_elbow else 'wrist'))
         made_swing += 1
 
-    # ===== Idle 자동 생성 =====
     if IDLE_ENABLED:
         rec_intervals = []
         if mode == 'interval':
             for e in evs:
                 if e['class'] != 'Idle':
                     rec_intervals.append((float(e['start']), float(e['end'])))
-        # target 계산
         target_idle = max(1, int(round(made_swing * IDLE_RATIO))) if made_swing > 0 else 0
         if target_idle > 0:
             meta_base = {
@@ -405,13 +373,16 @@ def process_pair(lmk_path, evt_csv, out_dir):
                 'video': base,
                 'T': int(T),
                 'feat_dim': 16,
-                'peak_pos': 'center'
+                'peak_pos': 'asymmetric(16|1|8)',
+                'pre': int(PRE_FR),
+                'post': int(POST_FR),
+                'causal': False,
+                'include_peak': True
             }
             rc = _gen_idle_clips(dfn, t, v_wrist, v_elbow, rec_intervals, target_idle,
                                   out_dir, lmk_path, evt_csv, meta_base)
             print(f"[INFO] Idle clips: {rc} / target {target_idle}")
 
-    # ===== 정제 로그 저장 =====
     if len(refined_rows) > 1:
         pd.DataFrame(refined_rows[1:], columns=refined_rows[0]).to_csv(
             evt_csv.replace('.csv','_refined.csv'),

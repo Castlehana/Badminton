@@ -1,12 +1,8 @@
-# scripts/pose_infer_onnx_videotest.py  (Hybrid: Peak→Swing, Non-peak→Ready)
-# - 관절: 16(R-Wrist), 14(R-Elbow), 12(R-Shoulder), 15(L-Wrist)
-# - 정규화: 중심 = R-Shoulder(12), 스케일 = |Shoulder(12)-Elbow(14)| (상완 길이)
-# - 특징 16D (03과 동일): [x,y, vx,vy, v, ax,ay, theta, front, d_ws, d_we, d_wl, dtheta, phi_shoulder(0), theta_rel, ang_elbow]
-# - 결정 로직(하이브리드):
-#     · 피크일 때 → 스윙 5종만 확정(UDP 전송)
-#     · 피크가 아닐 때 → 모델 argmax가 Ready이고 p_ready ≥ TH_READY면 Ready 표기(UDP 전송 선택적)
-# - 확정: softmax 최대 확률 ≥ --th && cooldown 충족 시 UDP 전송(스윙만)
-# - 메타(tcn_meta.json) 가정: {"classes":[...],"feat_dim":16,"target_T":33,"input_name":"clips","output_name":"logits","zscore_mu":[...],"zscore_std":[...]}
+# scripts/pose_infer_onnx_videotest.py
+# (Peak-INCLUDED, asymmetric 16|peak|8; T comes from tcn_meta.json, typically 25 = 16-before + peak + 8-after)
+# - 학습/클립 규칙: "피크 전 16 + 피크 1 + 피크 후 8" → 총 25프레임(센터=피크, 비-causal)
+# - 메타(tcn_meta.json)의 target_T/feat_dim/classes를 읽어 자동 적용
+# - 윈도우의 중앙(=피크)에서 스윙 클래스를 확정(UDP 전송), 그 외 시점엔 Ready/Idle을 참고 상태로 표시만 가능
 
 import argparse, time, json, socket, math, sys, os, glob
 from collections import deque
@@ -16,17 +12,16 @@ import numpy as np
 import mediapipe as mp
 import onnxruntime as ort
 
-# ===================== 상수/기본값 =====================
-DEF_T    = 33              # 학습/클립 길이(03과 일치)
-DEF_TH   = 0.80            # 스윙 확신도 임계
-DEF_CD   = 0.80            # 스윙 확정 쿨다운(초)
+# ===================== 기본값 =====================
+DEF_TH   = 0.80            # 스윙 확신도 임계 (softmax)
+DEF_CD   = 0.80            # 스윙 쿨다운(초)
 UDP_IP   = "127.0.0.1"
 UDP_PORT = 5052
 EPS      = 1e-6
 
-# Ready 관련
-TH_READY        = 0.60     # 피크가 아닐 때 Ready 확정 최소 확률
-SEND_READY_UDP  = False    # True면 Ready도 UDP로 알림(swing=False)
+# 비피크(준비/대기) 관련
+TH_READY        = 0.60     # 비피크 시 Ready/Idle 확정 최소 확률
+SEND_READY_UDP  = False    # True면 Ready/Idle도 UDP로 알림(swing=False)
 
 # 실시간 dt 안정화(웹캠 권장)
 TARGET_FPS = 30.0
@@ -34,13 +29,20 @@ TARGET_DT  = 1.0 / TARGET_FPS
 EMA_ALPHA  = 0.20
 DT_MIN, DT_MAX = 1/90.0, 1/20.0  # 90~20fps
 
-# 피크 검출 파라미터(정규화 좌표계 기준)
-PEAK_WIN        = 5          # 최근 5프레임 창(센터 = 최신 프레임)
-V_MIN_WRIST     = 0.80       # 손목 속도 최소(정규화/초)
-V_MIN_ELBOW     = 0.50       # 팔꿈치 속도 최소
-PROM_MIN        = 0.05       # 돌출도(피크 - 인접값)
+# ===================== 16|peak|8 윈도우 파라미터 =====================
+# 주의: 실제 T는 메타의 target_T를 따름. 여기 PRE/POST는 트리거 위치 계산용.
+PRE  = 16
+POST = 8
+
+# ===================== 피크 검출 파라미터 =====================
+V_MIN_WRIST     = 1.10       # 손목 속도 최소(정규화/초)
+V_MIN_ELBOW     = 0.80       # 팔꿈치 속도 최소
+PROM_MIN        = 0.06       # 돌출도(피크 - 인접값)
 VIS_THR         = 0.60       # 가시도 임계
 USE_ELBOW_RATIO = 0.5        # 창 내 손목 가시도 비율이 낮으면 팔꿈치 사용
+ADAPT_R         = 12         # 최근 12프레임(피크 프레임 제외)로 평균/표준편차
+ADAPT_K         = 1.0        # 적응형 기준선 = max(v_min_base, mean + K*std)
+PEAK_NEAR       = 1          # center±1 허용
 
 # ===================== 유틸 =====================
 def softmax(logits: np.ndarray) -> np.ndarray:
@@ -110,7 +112,7 @@ class FeatureBuilder:
         H['x15'].append(nlw[0]); H['y15'].append(nlw[1])
         H['vis16'].append(vis16); H['vis14'].append(vis14)
 
-        # 즉시 특징 생성 조건
+        # 우측정렬 버퍼: len==T가 되면 (T 프레임) 반환
         if len(H['t']) < self.T: return None, None
 
         # 배열화
@@ -134,15 +136,12 @@ class FeatureBuilder:
         theta = np.arctan2(dy, dx).astype(np.float32)
         dtheta = self._grad(theta, t)
 
-        # front: 어깨 중심 기준 → 손목 x가 0 이상이면 전방(오른쪽)
         front = (xw >= 0).astype(np.float32)
 
-        # 거리들
         d_ws = np.hypot(xw - xs, yw - ys).astype(np.float32)   # wrist-shoulder
         d_we = np.hypot(xw - xe, yw - ye).astype(np.float32)   # wrist-elbow
         d_wl = np.hypot(xw - xl, yw - yl).astype(np.float32)   # wrist-left_wrist
 
-        # phi_shoulder 사용하지 않음 → 0, 상대각 = theta
         phi_shoulder = np.zeros_like(theta, dtype=np.float32)
         theta_rel = theta.copy()
 
@@ -160,7 +159,7 @@ class FeatureBuilder:
             dtheta, phi_shoulder, theta_rel, ang_elbow
         ], axis=1).astype(np.float32)
 
-        # 속도/가시도 기록(피크 검사용)
+        # 속도/가시도 기록(피크 검사용, 길이 T로 유지)
         H['v_w'].append(float(v[-1]))
         H['v_e'].append(float(v_e[-1]))
 
@@ -180,34 +179,53 @@ class FeatureBuilder:
 
         return feats, diag
 
-# ===================== 피크 트리거 (최신 프레임 중심) =====================
-def is_recent_peak(seq, v_min, prom_min):
-    """최근 5프레임에서 '마지막 프레임'이 국소 최대 & 속도/돌출도 충족"""
-    if len(seq) < PEAK_WIN: return False
-    w = seq[-PEAK_WIN:]                  # [ -5, -4, -3, -2, -1 ]
-    c = w[-1]                            # 최신 프레임
-    if not (c > w[-2] and c > w[-3] and c > w[-4] and c > w[-5]):
-        return False
-    if c < v_min: return False
-    prom = c - max(w[-2], w[-3])         # 직전들 대비 돌출
-    if prom < prom_min: return False
-    return True
+# ===================== (중앙=피크) 트리거 =====================
+def _adaptive_min(seq, base, R=ADAPT_R, K=ADAPT_K, upto=None):
+    """upto: 적응 통계 계산에 포함할 마지막 인덱스(포함). None이면 마지막 전까지 자동."""
+    n = len(seq)
+    end = (n-2) if upto is None else max(0, min(upto-1, n-2))
+    start = max(0, end - (R-1))
+    if end >= start and (end - start + 1) >= 1:
+        win = np.asarray(seq[start:end+1], np.float32)
+        mu = float(np.mean(win)); sd = float(np.std(win))
+        return max(base, mu + K*sd)
+    return base
 
-def decide_peak(diag):
-    vw = diag['v_w_hist']; ve = diag['v_e_hist']
-    visw = diag['vis16_hist']
-    # 손목 가시도 비율이 낮으면 팔꿈치로 대체
+def is_center_peak_window(seq, center_idx, v_min_base):
+    """center_idx에서 국소최대+돌출도+최소속도(적응형)을 만족하는지."""
+    n = len(seq)
+    if n < 3 or not (0 <= center_idx < n): return False
+    c = center_idx
+    left  = seq[c-1] if c-1 >= 0 else seq[c]
+    right = seq[c+1] if c+1 < n else seq[c]
+    v_min_adapt = _adaptive_min(seq, v_min_base, upto=c)
+    cond_local = (seq[c] > left) and (seq[c] > right)
+    cond_prom  = (seq[c] - max(left, right)) >= PROM_MIN
+    cond_speed = (seq[c] >= v_min_adapt)
+    return cond_local and cond_prom and cond_speed
+
+def decide_peak_center(diag, T):
+    """우측정렬 버퍼 길이 T에서 센터(=T-1-POST)가 피크인지 검사. 가시도 낮으면 팔꿈치로 대체."""
+    vw = diag['v_w_hist']; ve = diag['v_e_hist']; visw = diag['vis16_hist']
+    if len(vw) < T: return False
+    center = T - 1 - POST  # 우측정렬에서 '현재'는 맨 끝(T-1), 피크는 그로부터 POST만큼 과거
+
+    # 손목 가시도 비율 낮으면 팔꿈치 속도로 판단
     use_elbow = False
-    if len(visw) >= PEAK_WIN:
-        win_w = visw[-PEAK_WIN:]
+    if len(visw) >= T:
+        win_w = visw[-T:]
         if sum(1 for v in win_w if v >= VIS_THR) / len(win_w) < USE_ELBOW_RATIO:
             use_elbow = True
-    if not use_elbow:
-        if is_recent_peak(vw, V_MIN_WRIST, PROM_MIN): return True
-        if is_recent_peak(ve, V_MIN_ELBOW, PROM_MIN): return True
-        return False
-    else:
-        return is_recent_peak(ve, V_MIN_ELBOW, PROM_MIN)
+
+    seq = ve if use_elbow else vw
+    base = V_MIN_ELBOW if use_elbow else V_MIN_WRIST
+
+    # center±PEAK_NEAR 허용
+    for off in (0, -1, +1) if PEAK_NEAR >= 1 else (0,):
+        idx = center + off
+        if 0 <= idx < len(seq) and is_center_peak_window(seq, idx, base):
+            return True
+    return False
 
 # ===================== 시각화 =====================
 def draw_body_ui(frame, lm, w, h, classes, prob=None, last_detected="None", last_conf=0.0):
@@ -274,17 +292,38 @@ def main():
     ap.add_argument("--th", type=float, default=DEF_TH)
     ap.add_argument("--cooldown", type=float, default=DEF_CD)
     ap.add_argument("--ip", type=str, default=UDP_IP)
-    ap.add_argument("--port", type=int, default=UDP_PORT)
+    ap.add_argument("--port", type=int, default=UDP_PORT)  # ← type=int
     ap.add_argument("--show_landmarks", action="store_true", default=False)
     ap.add_argument("--no-filepicker", action="store_true", default=False)
+    # ---- 임계 튜닝 CLI ----
+    ap.add_argument("--vmin_wrist", type=float, default=V_MIN_WRIST)
+    ap.add_argument("--vmin_elbow", type=float, default=V_MIN_ELBOW)
+    ap.add_argument("--prom_min", type=float, default=PROM_MIN)
+    ap.add_argument("--vis_thr", type=float, default=VIS_THR)
+    ap.add_argument("--use_elbow_ratio", type=float, default=USE_ELBOW_RATIO)
+    ap.add_argument("--adapt_r", type=int, default=ADAPT_R)
+    ap.add_argument("--adapt_k", type=float, default=ADAPT_K)
+    ap.add_argument("--pre", type=int, default=PRE)
+    ap.add_argument("--post", type=int, default=POST)
     args = ap.parse_args()
+
+    # 전역/파라미터 업데이트
+    globals()["V_MIN_WRIST"]     = args.vmin_wrist
+    globals()["V_MIN_ELBOW"]     = args.vmin_elbow
+    globals()["PROM_MIN"]        = args.prom_min
+    globals()["VIS_THR"]         = args.vis_thr
+    globals()["USE_ELBOW_RATIO"] = args.use_elbow_ratio
+    globals()["ADAPT_R"]         = args.adapt_r
+    globals()["ADAPT_K"]         = args.adapt_k
+    globals()["PRE"]             = args.pre
+    globals()["POST"]            = args.post
 
     # 메타
     with open(args.meta, "r", encoding="utf-8") as f:
         meta = json.load(f)
-    classes = meta["classes"]            # ['Clear','Drive','Drop','Under','Hairpin','Ready'] 예상
+    classes = meta["classes"]            # 예: ['Clear','Drive','Drop','Under','Hairpin','Idle']
     D       = int(meta["feat_dim"])
-    T       = int(meta.get("target_T", DEF_T))
+    T       = int(meta.get("target_T", PRE + 1 + POST))  # 기본 25
     in_name = meta.get("input_name", "clips")
     out_name= meta.get("output_name", "logits")
     mu  = np.asarray(meta["zscore_mu"],  dtype=np.float32)
@@ -328,15 +367,18 @@ def main():
     last_wrist_speed = 0.0  # 현재 손목 속도(정규화/초)
 
     # 시간/표시
-    t_prev = time.perf_counter(); dt_ema = TARGET_DT
+    t_prev = time.perf_counter(); dt_ema = 1.0 / TARGET_FPS
     printed_io_spec = False
     fps_vis = 0.0; fps_prev_wall = time.perf_counter()
 
-    # Ready 클래스 인덱스(없을 수도 있으니 안전 처리)
-    try:
-        ready_idx = classes.index('Ready')
-    except ValueError:
-        ready_idx = None
+    # Ready/Idle 클래스 인덱스(둘 다 지원)
+    ready_idx = classes.index('Ready') if 'Ready' in classes else None
+    idle_idx  = classes.index('Idle')  if 'Idle'  in classes else None
+    ready_like_idx = ready_idx if ready_idx is not None else idle_idx  # 하나라도 있으면 사용
+    ready_like_name= 'Ready' if ready_idx is not None else ('Idle' if idle_idx is not None else None)
+
+    # 스윙 클래스(Ready/Idle 제외)
+    swing_ids = [i for i,c in enumerate(classes) if c not in ('Ready','Idle')]
 
     while True:
         ok, frame = cap.read()
@@ -367,9 +409,9 @@ def main():
             if args.show_landmarks:
                 mp_draw.draw_landmarks(frame, res.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-            # ===== 항상 추론(하이브리드 결정) =====
+            # ===== 추론 + 중앙(피크) 트리거 =====
             if feats is not None and diag is not None:
-                X = feats.astype(np.float32)            # (T,D)
+                X = feats.astype(np.float32)            # (T,D) — 우측정렬 T창
                 Xn = (X - mu) / (std + EPS)
                 Xn = to_3d_btd(Xn, T, D)               # (1,T,D)
 
@@ -386,14 +428,14 @@ def main():
                 conf = float(p[0, cls_idx])
                 cls_name = classes[cls_idx] if 0 <= cls_idx < len(classes) else str(cls_idx)
 
-                # 피크 판정
-                peak_now = decide_peak(diag)
+                # 윈도우 중앙(=피크) 판정 (center = T-1-POST, 필요시 ±1 허용)
+                peak_now = decide_peak_center(diag, T)
 
                 if peak_now:
-                    # 스윙 시점: Ready 제외, 스윙 클래스만 확정/UDP
-                    if cls_name != 'Ready':
+                    # 스윙 시점: Ready/Idle 제외, 스윙 클래스만 확정/UDP
+                    if cls_idx in swing_ids and conf >= args.th:
                         now = time.perf_counter()
-                        if conf >= args.th and (now - last_fire_ts) >= args.cooldown:
+                        if (now - last_fire_ts) >= args.cooldown:
                             pkt = {"swing": True, "class": cls_name, "conf": round(conf,4), "ts": round(now,3)}
                             try:
                                 sock.sendto(json.dumps(pkt).encode("utf-8"), (args.ip, args.port))
@@ -402,19 +444,19 @@ def main():
                             last_fire_ts = now
                             last_detected, last_conf = cls_name, conf
                 else:
-                    # 비피크 시점: Ready만 확정 후보
-                    if ready_idx is not None and cls_idx == ready_idx and conf >= TH_READY:
-                        last_detected, last_conf = 'Ready', conf
+                    # 비피크 시점: Ready/Idle만 확정 후보
+                    if ready_like_idx is not None and cls_idx == ready_like_idx and conf >= TH_READY:
+                        last_detected, last_conf = ready_like_name, conf
                         if SEND_READY_UDP:
                             now = time.perf_counter()
-                            pkt = {"swing": False, "class": "Ready", "conf": round(conf,4), "ts": round(now,3)}
+                            pkt = {"swing": False, "class": ready_like_name, "conf": round(conf,4), "ts": round(now,3)}
                             try:
                                 sock.sendto(json.dumps(pkt).encode("utf-8"), (args.ip, args.port))
                             except Exception as e:
                                 print(f"[WARN] UDP send failed: {e}", file=sys.stderr)
 
         # 오버레이 (상태)
-        cv2.putText(frame, f"Last confirmed: {last_detected} ({last_conf:.2f})",
+        cv2.putText(frame, f"Last: {last_detected} ({last_conf:.2f})",
                     (16,48), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,220,255), 2)
 
         # FPS
@@ -428,7 +470,7 @@ def main():
         cv2.putText(frame, f"Wrist speed: {last_wrist_speed:.3f} (norm/s)",
                     (16, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,255,255), 2)
 
-        title = f"Pose Inference (Hybrid: Swing/Ready) - {'Webcam' if args.webcam else os.path.basename(video_path) if 'video_path' in locals() and video_path else 'Video'}"
+        title = f"Pose Inference (16|Peak|8, Center-Trigger) - {'Webcam' if args.webcam else os.path.basename(video_path) if 'video_path' in locals() and video_path else 'Video'}"
         cv2.imshow(title, frame)
         if cv2.waitKey(1) & 0xFF == 27: break
 
