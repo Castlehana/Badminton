@@ -3,19 +3,19 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("ÀÌµ¿ ¼Óµµ")]
+    [Header("ì´ë™ ì†ë„")]
     public float moveSpeed = 5f;
 
-    [Header("Á¡ÇÁ ¼Óµµ")]
+    [Header("ì í”„ ì†ë„")]
     public float jumpForce = 5f;
 
-    [Header("Áß·Â °¡¼Óµµ (À½¼ö °ª)")]
+    [Header("ì¤‘ë ¥ ê°€ì†ë„ (ìŒìˆ˜ ê°’)")]
     public float gravity = -9.81f;
 
-    [Header("¶¥ Ã¼Å©¿ë ·¹ÀÌ¾î")]
+    [Header("ë•… ì²´í¬ ë ˆì´ì–´")]
     public LayerMask groundLayer;
 
-    [Header("¶¥ Ã¼Å© Ray Ãß°¡ ±æÀÌ")]
+    [Header("ë•… ì²´í¬ Ray ê¸¸ì´ ê±°ë¦¬")]
     public float groundCheckDistance = 0.1f;
 
     private Rigidbody rb;
@@ -30,15 +30,44 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
         rb.useGravity = false;
+        
+        // AutoMovement ì»´í¬ë„ŒíŠ¸ê°€ ìˆìœ¼ë©´ ë¹„í™œì„±í™” (ì¶©ëŒ ë°©ì§€)
+        var autoMovement = GetComponent<AutoMovement>();
+        if (autoMovement != null)
+        {
+            Debug.LogWarning($"[PlayerMovement] AutoMovement component found! Disabling it to prevent position override.");
+            autoMovement.enabled = false;
+        }
+        
+        // Rigidbody ì œì•½ ë° ìƒíƒœ í™•ì¸ (ë””ë²„ê¹…)
+        if (rb.constraints != RigidbodyConstraints.None && rb.constraints != RigidbodyConstraints.FreezeRotation)
+        {
+            Debug.LogWarning($"[PlayerMovement] Rigidbody constraints: {rb.constraints}. Movement might be restricted!");
+        }
+        
+        if (rb.isKinematic)
+        {
+            Debug.LogError($"[PlayerMovement] Rigidbody is Kinematic! Movement will not work!");
+        }
     }
 
-    // ¿ÜºÎ(¾ÆµÎÀÌ³ë)¿¡¼­ ÀÌµ¿ ÀÔ·ÂÀ» ¼³Á¤
+    // ì™¸ë¶€(ì—ì´ì „íŠ¸)ì—ì„œ ì´ë™ ì…ë ¥ì„ ë°›ìŒ
     public void SetMoveInput(Vector2 input)
     {
-        moveInput = new Vector3(input.x, 0f, input.y).normalized;
+        // ì…ë ¥ì´ 0ì´ê±°ë‚˜ ë§¤ìš° ì‘ìœ¼ë©´ ì •ê·œí™”í•˜ì§€ ì•ŠìŒ (NaN ë°©ì§€)
+        if (input.sqrMagnitude < 0.0001f)
+        {
+            moveInput = Vector3.zero;
+        }
+        else
+        {
+            // ë°©í–¥ ë²¡í„°ë¡œ ì •ê·œí™” (í¬ê¸°ëŠ” í•­ìƒ 1)
+            moveInput = new Vector3(input.x, 0f, input.y).normalized;
+        }
+        
     }
 
-    // ¿ÜºÎ(¾ÆµÎÀÌ³ë)¿¡¼­ Á¡ÇÁ ¿äÃ»
+    // ì™¸ë¶€(ì—ì´ì „íŠ¸)ì—ì„œ ì í”„ ìš”ì²­
     public void Jump()
     {
         if (IsGrounded())
@@ -51,7 +80,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (trainingMode) return;
 
-        // Å°º¸µå ÀÌµ¿ ÀÔ·Â (Å×½ºÆ®¿ë): ÀÖÀ¸¸é '¿ì¼±¼øÀ§ ³ô°Ô' ¿ÜºÎ ÀÔ·ÂÀ» µ¤¾î¾´´Ù.
+        // í‚¤ë³´ë“œ ì´ë™ ì…ë ¥ (í…ŒìŠ¤íŠ¸ìš©): ì¼ë°˜ì ìœ¼ë¡œ 'ì—ì´ì „íŠ¸ ìš°ì„ ' ëª¨ë“œì—ì„œ ì™¸ë¶€ ì…ë ¥ì„ ë¬´ì‹œí•©ë‹ˆë‹¤.
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
         Vector2 keyboardInput = new Vector2(horizontal, vertical);
@@ -65,7 +94,7 @@ public class PlayerMovement : MonoBehaviour
             SetMoveInput(Vector2.zero);
         }
 
-        // Å°º¸µå Á¡ÇÁ ÀÔ·Â(Å×½ºÆ®¿ë)
+        // í‚¤ë³´ë“œ ì í”„ ì…ë ¥(í…ŒìŠ¤íŠ¸ìš©)
         if (Input.GetKeyDown(KeyCode.Space))
         {
             Jump();
@@ -74,6 +103,9 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
+        // í•™ìŠµ ëª¨ë“œì—ì„œë§Œ ì´ë™ ì²˜ë¦¬
+        if (!trainingMode) return;
+        
         float dt = Time.fixedDeltaTime;
         bool grounded = IsGrounded();
 
@@ -92,6 +124,7 @@ public class PlayerMovement : MonoBehaviour
 
         rb.velocity = velocity;
     }
+    
 
     bool IsGrounded()
     {

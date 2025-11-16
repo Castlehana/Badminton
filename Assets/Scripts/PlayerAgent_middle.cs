@@ -1,17 +1,17 @@
-﻿using System.Linq;
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
 
+
 [RequireComponent(typeof(PlayerMovement), typeof(Rigidbody))]
-public class PlayerAgent : Agent
+public class PlayerAgent_middle : Agent
 {
     [Header("참조")]
     public PlayerMovement movement;
     public EnemyShooting shooting;                 // 스윙 실행용
-    public SwingZone overZone;                     // 오버 스윙 존 (Clear, Drop)
-    public SwingZone underZone;                    // 언더 스윙 존 (Hairpin, Drive, Under)
+    public SwingZone overZone;                     // 오버 스윙 존 (Clear, Drop, Drive)
+    public SwingZone underZone;                    // 언더 스윙 존 (Hairpin, Under)
     public Collider myCourtCollider;               // "MySide" 태그를 가진 콜라이더
     public ReinforcementLearningManager rl;        // courtHalfWidthX/Z 등 값 참조
 
@@ -20,13 +20,10 @@ public class PlayerAgent : Agent
     public string goalTag = "Goal";
 
     [Header("보상")]
-    public float stepCenteringWeight = 0.3f;      // 낙하지점 근접 shaping 계수(프레임당)
-    public float hitReward = 2.0f;                 // 셔틀 타격 성공 보상
     public float timePenalty = -0.0005f;           // 소량 지연 패널티
-    public float wrongZoneSwingPenalty = -0.3f;    // 잘못된 존에서 스윙 선택 패널티
-	public float outOfCourtPenalty = -0.005f;       // 내 코트 벗어남 패널티 (프레임당)
+    public float wrongZoneSwingPenalty = -0.5f;    // 잘못된 존에서 스윙 선택 패널티
     public float centerProgressWeight = 0.1f;      // 낙하지점 근접 '진전' 보상 가중치
-	public float swingAppropriateReward = 2.0f;    // 네트 거리 기준 적절한 스윙 보상
+    public float swingAppropriateReward = 1.0f;    // 네트 거리 기준 적절한 스윙 보상
 
     [Header("에피소드 종료(랠리)")]
     public float landYThreshold = 0.7f;   // 셔틀 착지로 간주할 높이 
@@ -35,41 +32,15 @@ public class PlayerAgent : Agent
     bool _landedDetected;                 // 착지 감지 여부
     float _landedAt;                      // 착지 시각(Realtime)
 
-	[Header("에피소드 로깅")]
-	public bool logEpisodeRewards = true;             // 에피소드 리워드 요약 로그 출력 여부
-	float _epTimePenaltySum = 0f;
-	float _epCenteringSum = 0f;
-	float _epOutOfCourtSum = 0f;
-	float _epWrongZoneSum = 0f;
-	float _epSwingAppropriateSum = 0f;
-	float _epHitSum = 0f;
-	int[] _epSwingExecCounts = new int[5];           // Clear, Drop, Hairpin, Drive, Under 실행 횟수
-	int _epWrongZoneSelectCount = 0;
-    float _prevCloseness = 0f;                       // 이전 프레임의 goal 근접도
-	bool _overPrev = false, _underPrev = false;      // 이전 프레임 존 상태
-	bool _overActiveLastFrame = false, _underActiveLastFrame = false; // 존 활성 상태(이전 프레임)
-	bool _overSwungThisEntry = false, _underSwungThisEntry = false;   // 존 '이번 진입' 동안 스윙 실행 여부
-	bool _combinedActiveLastFrame = false;           // 오버/언더 통합 활성 상태(이전 프레임)
-	bool _swungThisCombinedEntry = false;            // 통합 존에 대한 '이번 진입' 동안 스윙 실행 여부
-	[Header("디버그")]
-	public bool logSwing = false;                      // 스윙 로그 출력 토글
-
     Rigidbody _rb;
-    bool _hitGivenThisStep = false;                // 중복 지급 방지
-    bool _episodeClosing;
 
     bool _hitRange = false;   // 셔틀이 타격 콜라이더 안에 있는지
     bool isMyTurn = false;    // 현재 내 턴 여부
-    
-    int _lastSwingAction = -1;  // 이전 스윙 액션 (중복 실행 방지)
-    int _lastLoggedSwing = -1;  // 마지막으로 로그를 출력한 스윙
-
 
     public bool mySideIsPositiveZ = false;
-
 	
 	[Header("쿨타임")]
-	public float swingCooldown = 0.5f;   // 스윙 시도 후 대기 시간(초)
+	public float swingCooldown = 0.5f;
 	float _nextSwingTime = 0f;
 
     public void SetTurn(bool value)
@@ -77,26 +48,16 @@ public class PlayerAgent : Agent
         isMyTurn = value;
     }
 
-    // === 공통 상수/유틸 ===
-    static readonly string[] SwingNames = { "Clear", "Drop", "Hairpin", "Drive", "Under" };
-
-    bool IsOutsideCourtXZ(Vector3 p)
-    {
-        if (myCourtCollider == null) return false;
-        Bounds b = myCourtCollider.bounds;
-        return (p.x < b.min.x || p.x > b.max.x || p.z < b.min.z || p.z > b.max.z);
-    }
+    float _prevCloseness = 0f;
 
     void ApplyWrongZonePenalty()
     {
         AddReward(wrongZoneSwingPenalty);
-        _epWrongZoneSum += wrongZoneSwingPenalty;
-        _epWrongZoneSelectCount++;
     }
 
-	// === 헬퍼 메서드(중복 제거) ===
-	bool IsOverSwingIndex(int s) { return s == 0 || s == 1; }
-	bool IsUnderSwingIndex(int s) { return s == 2 || s == 3 || s == 4; }
+	// === 헬퍼 메서드===
+    bool IsOverSwingIndex(int s) { return s == 0 || s == 1 || s == 3; }
+    bool IsUnderSwingIndex(int s) { return s == 2 || s == 4; }
 	bool HasTargetsIn(SwingZone zone) { return zone != null && zone.GetShuttlecocks().Count > 0; }
 	bool HasTargetsNowForSwing(int swing)
 	{
@@ -116,14 +77,7 @@ public class PlayerAgent : Agent
 			default: break;
 		}
 	}
-	void LogSwingIfChanged(int swing, SwingZone.ZoneType activeZoneType)
-	{
-		if (!logSwing) return;
-		if (swing == _lastLoggedSwing) return;
-		if (swing < 0 || swing >= SwingNames.Length) return;
-		Debug.Log($"[PlayerAgent] 스윙: {SwingNames[swing]} (존: {activeZoneType})");
-		_lastLoggedSwing = swing;
-	}
+
 	bool TryProcessSwingChange(int swing, bool overHitRange, bool underHitRange, out SwingZone.ZoneType activeZoneType)
 	{
 		activeZoneType = SwingZone.ZoneType.Over;
@@ -132,35 +86,23 @@ public class PlayerAgent : Agent
 		if (Time.time < _nextSwingTime)
 			return false;
 
-		// 스윙존에 머무르는 동안은 1회만 스윙
-		if ((overHitRange || underHitRange) && _swungThisCombinedEntry)
-			return false;
-
-		// 같은 존에 머무르는 동안은 1회만 스윙
-		if (overHitRange && _overSwungThisEntry) return false;
-		if (underHitRange && _underSwungThisEntry) return false;
-
 		// 오버 존에서의 처리
 		if (overHitRange && overZone != null)
 		{
 			if (IsOverSwingIndex(swing))
 			{
-				// 올바른 스윙 → 실행
+				// 올바른 스윙은 실행
 				if (HasTargetsNowForSwing(swing))
 				{
 					activeZoneType = SwingZone.ZoneType.Over;
-					LogSwingIfChanged(swing, activeZoneType);
 					ExecuteSwingByIndex(swing);
-					_swungThisCombinedEntry = true;
-					_overSwungThisEntry = true;
-					if (swing >= 0 && swing < _epSwingExecCounts.Length) _epSwingExecCounts[swing]++;
 					_nextSwingTime = Time.time + swingCooldown;
 					return true;
 				}
 			}
 			else if (IsUnderSwingIndex(swing))
 			{
-				// 잘못된 스윙 → 패널티
+				// 잘못된 스윙은 패널티
 				ApplyWrongZonePenalty();
 				return false;
 			}
@@ -175,11 +117,7 @@ public class PlayerAgent : Agent
 				if (HasTargetsNowForSwing(swing))
 				{
 					activeZoneType = SwingZone.ZoneType.Under;
-					LogSwingIfChanged(swing, activeZoneType);
 					ExecuteSwingByIndex(swing);
-					_swungThisCombinedEntry = true;
-					_underSwungThisEntry = true;
-					if (swing >= 0 && swing < _epSwingExecCounts.Length) _epSwingExecCounts[swing]++;
 					_nextSwingTime = Time.time + swingCooldown;
 					return true;
 				}
@@ -199,18 +137,16 @@ public class PlayerAgent : Agent
 		if (!executedThisStep) return;
 		if (distanceRatio > 0.6f)
 		{
-			if (swing == 0 || swing == 3)
+			if (swing == 0 || swing == 3 || swing == 4)
 			{
-			AddReward(swingAppropriateReward);
-			_epSwingAppropriateSum += swingAppropriateReward;
+				AddReward(swingAppropriateReward);
 			}
 		}
 		else if (distanceRatio < 0.4f)
 		{
-			if (swing == 1 || swing == 2 || swing == 4)
+			if (swing == 1 || swing == 2)
 			{
-			AddReward(swingAppropriateReward);
-			_epSwingAppropriateSum += swingAppropriateReward;
+				AddReward(swingAppropriateReward);
 			}
 		}
 	}
@@ -234,18 +170,10 @@ public class PlayerAgent : Agent
                     underZone = zone;
             }
         }
-        
-        // "MySide" 태그를 가진 콜라이더 자동 찾기
-        if (!myCourtCollider)
-        {
-            GameObject mySideObj = GameObject.FindGameObjectWithTag("MySide");
-            if (mySideObj != null)
-                myCourtCollider = mySideObj.GetComponent<Collider>();
-        }
 
         if (movement) movement.trainingMode = true;
 
-		// Shooter가 존 참조를 갖도록 보정 (추론 씬에서 누락될 수 있음)
+		// Shooter가 존 참조를 갖도록 보정
 		if (shooting != null)
 		{
 			if (shooting.overZone == null) shooting.overZone = overZone;
@@ -259,32 +187,14 @@ public class PlayerAgent : Agent
         _rb.velocity = Vector3.zero;
         movement.SetMoveInput(Vector2.zero);
 
-        // trainingMode 확인 (에피소드마다 확인)
-        if (movement) movement.trainingMode = true;
+		_prevCloseness = 0f;
 
 		// 랠리 상태 초기화
         _trackedShuttle = null;
         _landedDetected = false;
         _landedAt = 0f;
-        _lastLoggedSwing = -1;  // 스윙 로그 초기화
 
-		// 에피소드 리워드/카운트 초기화
-		_epTimePenaltySum = 0f;
-		_epCenteringSum = 0f;
-		_epOutOfCourtSum = 0f;
-		_epWrongZoneSum = 0f;
-		_epSwingAppropriateSum = 0f;
-		_epHitSum = 0f;
-		_epSwingExecCounts = new int[5];
-		_epWrongZoneSelectCount = 0;
-        _prevCloseness = 0f;
-		_overPrev = _underPrev = false;
-		_lastSwingAction = -1;
-		_nextSwingTime = 0f;
-		_overActiveLastFrame = _underActiveLastFrame = false;
-		_overSwungThisEntry = _underSwungThisEntry = false;
-		_combinedActiveLastFrame = false;
-		_swungThisCombinedEntry = false;
+        
     }
 
     // === 관측(OBS) ===
@@ -351,16 +261,14 @@ public class PlayerAgent : Agent
     }
 
     // === 행동 적용 ===
-    // 연속 2 (move XZ) + 이산 4 (오버2, 언더2)
+    // 연속 2 (move XZ) + 이산 5 (오버3, 언더2)
     public override void OnActionReceived(ActionBuffers actions)
     {
-        _hitGivenThisStep = false;
-
         var ca = actions.ContinuousActions;
         var da = actions.DiscreteActions;
 
         Vector2 move = new Vector2(Mathf.Clamp(ca[0], -1f, 1f), Mathf.Clamp(ca[1], -1f, 1f));
-        int swing = (da.Length >= 1) ? Mathf.Clamp(da[0], 0, 4) : 0;  // 0~4 (5가지 스윙: Clear, Drop, Drive, Smash, Hairpin)
+        int swing = (da.Length >= 1) ? Mathf.Clamp(da[0], 0, 4) : 0;  // 0~4 (5가지 스윙)
         
         // movement 컴포넌트 null 체크 및 초기화
         if (movement == null)
@@ -379,58 +287,32 @@ public class PlayerAgent : Agent
         bool overHitRange = overZone != null && overZone.GetShuttlecocks().Count > 0;
         bool underHitRange = underZone != null && underZone.GetShuttlecocks().Count > 0;
         _hitRange = overHitRange || underHitRange;
-		bool combinedHitRange = _hitRange;
-		if (combinedHitRange && !_combinedActiveLastFrame) _swungThisCombinedEntry = false;
 
-		// 스윙존 진입 감지 시 해당 존의 스윙-1회 플래그 리셋
-		if (overHitRange && !_overActiveLastFrame) _overSwungThisEntry = false;
-		if (underHitRange && !_underActiveLastFrame) _underSwungThisEntry = false;
-
-		// 이전 프레임 상태 기록(참고용)
-		_overPrev = overHitRange;
-		_underPrev = underHitRange;
-
-		// 스윙 트리거: 쿨타임 기반 매 프레임 시도(조건 불충족이면 내부에서 무시)
+		// 스윙 트리거
 		bool executedThisStep = false;
 		SwingZone.ZoneType activeZoneType = SwingZone.ZoneType.Over;
 		executedThisStep = TryProcessSwingChange(swing, overHitRange, underHitRange, out activeZoneType);
-		_lastSwingAction = swing;
-
-		// 현재 프레임의 존 활성 상태를 '이전 프레임'으로 기록
-		_overActiveLastFrame = overHitRange;
-		_underActiveLastFrame = underHitRange;
-		_combinedActiveLastFrame = combinedHitRange;
 
         // ----- 보상(Reward) -----
-		AddReward(timePenalty); // 소량 시간 패널티
-		_epTimePenaltySum += timePenalty;
+		AddReward(timePenalty);
         
-		// 내 코트 벗어남 패널티 (XZ 평면 기준)
-		if (IsOutsideCourtXZ(transform.position))
-		{
-			AddReward(outOfCourtPenalty);
-			_epOutOfCourtSum += outOfCourtPenalty;
-		}
-
 		// 네트까지의 거리 계산 (거리에 따라 적절한 스윙 타입 선택)
         float cw = rl ? rl.courtHalfWidthX : 11f;
         float cz = rl ? rl.courtHalfLengthZ : 20f;
         var goal = GameObject.FindGameObjectWithTag(goalTag);
-		float netDistanceToTarget = 0f;
         bool goalValid = false;
         
         if (goal != null)
         {
-			Vector3 goalPos = goal.transform.position;
-			// 네트(z=0)까지의 절대 거리 사용
-			netDistanceToTarget = Mathf.Abs(goalPos.z);
+			// 플레이어 기준 네트 거리 사용
 			float maxDistance = cz; // 네트에서 베이스라인까지 반코트 길이
+			float playerNetDistance = Mathf.Abs(transform.position.z);
+			float distanceRatio = maxDistance > 0f ? Mathf.Clamp01(playerNetDistance / maxDistance) : 0f;
             goalValid = true;
             
-			// 거리에 따른 적절한 스윙 타입 보상 (스윙이 실제 실행된 프레임에만 1회 지급)
-			// 멀리 쳐야 할 때(네트 거리 > 0.6*max): Clear(0), Drive(3) 적합
-			// 가까이 쳐야 할 때(네트 거리 < 0.4*max): Drop(1), Hairpin(2), Under(4) 적합
-			float distanceRatio = netDistanceToTarget / maxDistance;
+			// 거리에 따른 적절한 스윙 타입 보상
+			// 멀리 쳐야 할 때(네트 거리 > 0.6*max): Clear(0), Drive(3), Under(4) 적합
+			// 가까이 쳐야 할 때(네트 거리 < 0.4*max): Drop(1), Hairpin(2) 적합
 
             MaybeRewardAppropriateSwing(swing, executedThisStep, distanceRatio);
         }
@@ -442,7 +324,7 @@ public class PlayerAgent : Agent
             float gOut = (Mathf.Abs(goal.transform.position.x / cw) > 1f ||
                           Mathf.Abs(goal.transform.position.z / cz) > 1f) ? 1f : 0f;
 
-            // 관측-보상 정합성: Goal이 내 코트(XZ 기준)에 있으면 내 턴으로 간주
+            //  Goal이 내 코트(XZ 기준)에 있으면 내 턴으로 간주
             if (myCourtCollider != null)
             {
                 Bounds b = myCourtCollider.bounds;
@@ -454,7 +336,6 @@ public class PlayerAgent : Agent
             // 내 턴일 때 인코트 목표 지점을 따라가도록 shaping
             if (gOut < 0.5f && isMyTurn)
             {
-                // 내 턴 & 인코트일 때만 낙하지점 근접 shaping 부여
                 Vector2 pN = new Vector2(
                     Mathf.Clamp(transform.position.x, -cw, cw) / cw,
                     Mathf.Clamp(transform.position.z, -cz, cz) / cz
@@ -463,49 +344,24 @@ public class PlayerAgent : Agent
 
                 float dist = Vector2.Distance(pN, gN);                  // 0..~2.8284 (√8)
                 float closeness = Mathf.Clamp01(1f - (dist / 2.8284f)); // 0..1
-                // 가까워진 양(양수)일 때만 보상
                 float delta = Mathf.Max(0f, closeness - _prevCloseness);
                 float progR = centerProgressWeight * delta;
                 AddReward(progR);
-                _epCenteringSum += progR;
                 _prevCloseness = closeness;
+            }
+            else
+            {
+                // 조건이 아니면 현재 근접도를 기록만 함
+                Vector2 pN = new Vector2(
+                    Mathf.Clamp(transform.position.x, -cw, cw) / cw,
+                    Mathf.Clamp(transform.position.z, -cz, cz) / cz
+                );
+                Vector2 gN = new Vector2(gX, gZ);
+                float dist = Vector2.Distance(pN, gN);
+                _prevCloseness = Mathf.Clamp01(1f - (dist / 2.8284f));
             }
         }
 
-    }
-
-    public override void Heuristic(in ActionBuffers actionsOut)
-    {
-        var ca = actionsOut.ContinuousActions;
-        var da = actionsOut.DiscreteActions;
-
-        ca[0] = Input.GetAxis("Horizontal");
-        ca[1] = Input.GetAxis("Vertical");
-
-        // 테스트용: 키 입력에 따라 스윙 종류 0~4 (5가지)
-        // 1: Clear, 2: Drop, 3: Hairpin, 4: Drive, 5: Under
-        if (Input.GetKey(KeyCode.Alpha1)) da[0] = 0;      // Clear
-        else if (Input.GetKey(KeyCode.Alpha2)) da[0] = 1;  // Drop
-        else if (Input.GetKey(KeyCode.Alpha3)) da[0] = 2;  // Hairpin
-        else if (Input.GetKey(KeyCode.Alpha4)) da[0] = 3;  // Drive
-        else if (Input.GetKey(KeyCode.Alpha5)) da[0] = 4;  // Under
-        else da[0] = 0;  // 기본값: Clear
-
-    }
-
-
-    // 셔틀콕 충돌 감지 → 보상
-    void OnCollisionEnter(Collision collision)
-    {
-        if (_hitGivenThisStep) return;
-        if (collision.gameObject.CompareTag(shuttlecockTag))
-        {
-            // Shuttlecock 쪽에서 Player의 SphereCollider와만 충돌 허용되므로
-            // 이 이벤트가 오면 "타격"으로 간주 가능
-			AddReward(hitReward);
-			_epHitSum += hitReward;
-            _hitGivenThisStep = true;
-        }
     }
 
     GameObject FindNearestShuttlecock()
@@ -560,9 +416,6 @@ public class PlayerAgent : Agent
 
 			if (trackedGone)
 			{
-				// 에피소드 리워드 요약 로그
-				if (logEpisodeRewards) LogEpisodeRewards();
-
 				EndEpisode();
 				// 다음 에피소드를 위해 상태 초기화
 				_trackedShuttle = null;
@@ -572,19 +425,4 @@ public class PlayerAgent : Agent
         }
     }
 
-	void LogEpisodeRewards()
-	{
-		float total = GetCumulativeReward();
-		string swingCounts = string.Format("{0}:{1}, {2}:{3}, {4}:{5}, {6}:{7}, {8}:{9}",
-			SwingNames[0], _epSwingExecCounts.Length > 0 ? _epSwingExecCounts[0] : 0,
-			SwingNames[1], _epSwingExecCounts.Length > 1 ? _epSwingExecCounts[1] : 0,
-			SwingNames[2], _epSwingExecCounts.Length > 2 ? _epSwingExecCounts[2] : 0,
-			SwingNames[3], _epSwingExecCounts.Length > 3 ? _epSwingExecCounts[3] : 0,
-			SwingNames[4], _epSwingExecCounts.Length > 4 ? _epSwingExecCounts[4] : 0
-		);
-
-		Debug.Log(
-			$"[EpLog] total={total:F3} | time={_epTimePenaltySum:F3}, center={_epCenteringSum:F3}, outCourt={_epOutOfCourtSum:F3}, wrongZone={_epWrongZoneSum:F3} (cnt={_epWrongZoneSelectCount}), swingFit={_epSwingAppropriateSum:F3}, hit={_epHitSum:F3} | swings={{ {swingCounts} }}"
-		);
-	}
 }
