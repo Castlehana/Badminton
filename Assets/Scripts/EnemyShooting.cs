@@ -78,8 +78,7 @@ public class EnemyShooting : MonoBehaviour
         {
             if (sc != null)
             {
-                sc.Launch(yaw, pitch, force); // ★ pitch 뒤집기 제거 → PlayerShooting과 동일
-                if (!firstLogged)
+                sc.Launch(yaw, pitch, force); 
                 {
                     Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}, Pitch: {pitch}, Force: {force}) → {sc.name}");
                     firstLogged = true;
@@ -88,9 +87,7 @@ public class EnemyShooting : MonoBehaviour
         }
     }
 
-
-    //********** 추가 *********** 위에 스윙 함수들을 아래 함수들로 사용하시오
-    // 오버 스윙: Clear, Drop
+    // 오버 스윙: Clear, Drop, Drive
     public void Clear()
     {
         var targets = overZone != null ? new List<Shuttlecock>(overZone.GetShuttlecocks()) : new List<Shuttlecock>();
@@ -105,19 +102,20 @@ public class EnemyShooting : MonoBehaviour
         LaunchToAll(0f, 50f, 15f, "드롭", targets);
     }
     
-    // 언더 스윙: Hairpin, Drive, Under
+        public void Drive()
+    {
+        var targets = overZone != null ? new List<Shuttlecock>(overZone.GetShuttlecocks()) : new List<Shuttlecock>();
+        if (targets.Count == 0) return;
+        LaunchToAll(0f, 10f, 25f, "드라이브", targets);
+    }
+    
+
+    // 언더 스윙: Hairpin, Under
     public void Hairpin()
     {
         var targets = underZone != null ? new List<Shuttlecock>(underZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
         LaunchToAll(0f, 35f, 13f, "헤어핀", targets);
-    }
-    
-    public void Drive()
-    {
-        var targets = underZone != null ? new List<Shuttlecock>(underZone.GetShuttlecocks()) : new List<Shuttlecock>();
-        if (targets.Count == 0) return;
-        LaunchToAll(0f, 10f, 25f, "드라이브", targets);
     }
     
     public void Under()
