@@ -88,10 +88,6 @@ public class Shuttlecock : MonoBehaviour
         // 득점 판정 처리 코루틴 함수
         StartCoroutine(LandingJudgeRoutine());
 
-        // 랠리 종료 상태로 전환
-        rallyManager.State = RallyState.Ended;
-        UnityEngine.Debug.Log("랠리 끝!!");
-
         // 셔틀콕 삭제 예약
         Destroy(gameObject, lifeTime);
 
@@ -193,31 +189,11 @@ public class Shuttlecock : MonoBehaviour
         // OnTriggerEnter 이벤트를 받을 시간 여유
         yield return new WaitForSeconds(lifeTime - 0.1f);
 
-        // 득점 판정 처리
-        if (underNet)
-        {
-            // 1. 네트 밑 통과 + 플레이어 코트 -> 플레이어 득점
-            if (mySide) UnityEngine.Debug.Log("Player Point");
-            // 2. 네트 밑 통과 + 상대 코트 -> 상대 득점
-            if (opponentSide) UnityEngine.Debug.Log("AI Point");
-        }
-        else
-        {
-            if (mySide)
-            {
-                // 3. 플레이어 영역 + 인코트 -> 상대 득점
-                if (inCourt) UnityEngine.Debug.Log("AI Point");
-                // 4. 플레이어 영역 + 아웃코트 -> 플레이어 득점
-                else UnityEngine.Debug.Log("Player Point");
-            }
-            else if (opponentSide)
-            {
-                // 5. 상대 영역 + 인코트 -> 플레이어 득점
-                if (inCourt) UnityEngine.Debug.Log("Player Point");
-                // 6. 상대 영역 + 아웃코트 -> 상대 득점
-                else UnityEngine.Debug.Log("AI Point");
-            }
-        }
+        // 랠리 종료 상태로 전환
+        rallyManager.State = RallyState.Checking;
+        UnityEngine.Debug.Log("랠리 끝, 포인트 체크 시작!");
+
+        rallyManager.PointCheck(mySide, opponentSide, inCourt, underNet);
     }
 
     void OnCollisionEnter(Collision collision)
@@ -249,7 +225,7 @@ public class Shuttlecock : MonoBehaviour
             inCourt = true;
             //UnityEngine.Debug.Log("코트 안에 떨어짐");
         }
-        if (other.CompareTag("UnderNet"))
+        if (other.CompareTag("UnderNet") && alreadyLanded == false)
         {
             underNet = true;
             //UnityEngine.Debug.Log("네트 밑을 지나감");

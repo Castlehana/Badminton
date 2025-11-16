@@ -5,16 +5,21 @@ using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Python 송신 페이로드와 동일
-// { "swing": true, "type": 0..4, "label":"Clear|Drive|Drop|Under|Hairpin", "conf":0~1, "strength":float }
 [Serializable]
-public class SwingMsg
+public class SwingMsgPy
 {
     public bool swing;
-    public float strength;
-    public int type;        // 0:Clear, 1:Drive, 2:Drop, 3:Under, 4:Hairpin
-    public string label;    // 참고용
-    public float conf;      // softmax 확률
+    public string @class;   // Python JSON key "class"
+    public float conf;
+    public float ts;        // 미사용이지만 보관
+}
+
+[Serializable]
+public class JumpMsgPy
+{
+    public bool jump;
+    public float speed;     // -dy/dt (1/s)
+    public float ts;        // 미사용이지만 보관
 }
 
 public enum SwingClass { Clear = 0, Drive = 1, Drop = 2, Under = 3, Hairpin = 4 }
@@ -24,25 +29,29 @@ public class PoseReceiver : MonoBehaviour
     [Header("UDP")]
     public int port = 5052;
 
-    [Header("Decision Thresholds")]
-    [Range(0f, 1f)] public float minConfidence = 0.45f; // Python TH_SOFT와 일치(필요 시 0.60으로 상향)
-    public float weakSpeed = 3f;                         // 속도 약 임계
-    public float strongSpeed = 6f;                       // 속도 강 임계
+    [Header("Decision Threshold")]
+    [Range(0f, 1f)] public float minConfidence = 0.45f;
 
     [Header("Latest Swing State (Read-Only)")]
-    public bool swingDetected;       // 새 메시지에서 스윙 감지됨?
-    public float swingSpeed;         // 확정 순간의 속도
-    public int typeId;               // 0..4 (Clear,Drive,Drop,Under,Hairpin)
-    public string typeLabel;         // 문자열 라벨
-    public float confidence;         // softmax conf
+    public bool swingDetected;
+    public int typeId;           // 0..4
+    public string typeLabel;     // "Clear" 등
+    public float confidence;     // softmax 확률
+
+    [Header("Jump (Read-Only)")]
+    public bool jumpDetected;
+    public float lastJumpSpeed;  // Python speed 값(-dy/dt)
 
     [Header("References")]
-    public PlayerShooting playerShooting; // 인스펙터 연결
+    public PlayerShooting playerShooting; // 인스펙터에서 연결
+    public AutoMovement autoMovement;     // 인스펙터에서 연결 → Jump() 호출
 
-    // 내부
     private UdpClient udp;
     private IPEndPoint anyEndPoint;
-    private readonly Queue<SwingMsg> inbox = new Queue<SwingMsg>(); // 메인스레드 처리용 버퍼
+
+    // 메인 스레드 처리를 위한 큐
+    private readonly Queue<SwingMsgPy> swingInbox = new Queue<SwingMsgPy>();
+    private readonly Queue<JumpMsgPy> jumpInbox = new Queue<JumpMsgPy>();
     private readonly object locker = new object();
 
     void Start()
@@ -50,9 +59,26 @@ public class PoseReceiver : MonoBehaviour
         udp = new UdpClient(port);
         anyEndPoint = new IPEndPoint(IPAddress.Any, port);
         udp.BeginReceive(ReceiveData, null);
+        Debug.Log($"[PoseReceiver] Listening UDP :{port} (Python swing & jump schema)");
     }
 
-    // 비-메인 스레드 콜백 → 큐에 적재
+    // 문자열 라벨 → enum 인덱스
+    private static int LabelToTypeId(string label)
+    {
+        if (string.IsNullOrEmpty(label)) return -1;
+        switch (label.ToLowerInvariant())
+        {
+            case "clear": return (int)SwingClass.Clear;
+            case "drive": return (int)SwingClass.Drive;
+            case "drop": return (int)SwingClass.Drop;
+            case "under": return (int)SwingClass.Under;
+            case "hairpin": return (int)SwingClass.Hairpin;
+            case "ready": return -1; // 스윙 아님
+            default: return -1;
+        }
+    }
+
+    // 비-메인 스레드 콜백 → 큐 적재
     void ReceiveData(IAsyncResult ar)
     {
         try
@@ -60,20 +86,36 @@ public class PoseReceiver : MonoBehaviour
             byte[] data = udp.EndReceive(ar, ref anyEndPoint);
             string message = Encoding.UTF8.GetString(data);
 
-            SwingMsg msg = null;
+            // 1) 스윙 패킷 시도: {"swing":true,"class":"Clear","conf":0.98,"ts":...}
             try
             {
-                msg = JsonUtility.FromJson<SwingMsg>(message);
+                var sw = JsonUtility.FromJson<SwingMsgPy>(message);
+                if (sw != null)
+                {
+                    int tid = LabelToTypeId(sw.@class);
+                    if (sw.swing && tid >= 0)
+                    {
+                        lock (locker) swingInbox.Enqueue(sw);
+                        // 스윙으로 파싱됐으면 종료
+                        udp.BeginReceive(ReceiveData, null);
+                        return;
+                    }
+                }
             }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[PoseReceiver] JSON parse failed: {ex.Message}\nRaw: {message}");
-            }
+            catch { /* fallthrough to jump */ }
 
-            if (msg != null && msg.swing)
+            // 2) 점프 패킷 시도: {"jump":true,"speed":2.43,"ts":...}
+            try
             {
-                lock (locker) inbox.Enqueue(msg);
+                var jp = JsonUtility.FromJson<JumpMsgPy>(message);
+                if (jp != null && jp.jump)
+                {
+                    lock (locker) jumpInbox.Enqueue(jp);
+                    udp.BeginReceive(ReceiveData, null);
+                    return;
+                }
             }
+            catch { /* ignore */ }
         }
         catch (Exception e)
         {
@@ -92,34 +134,51 @@ public class PoseReceiver : MonoBehaviour
 
     void Update()
     {
-        // 수신된 이벤트를 메인 스레드에서 처리
+        // ---------- 스윙 처리 ----------
         while (true)
         {
-            SwingMsg msg = null;
-            lock (locker)
-            {
-                if (inbox.Count > 0) msg = inbox.Dequeue();
-            }
+            SwingMsgPy msg = null;
+            lock (locker) { if (swingInbox.Count > 0) msg = swingInbox.Dequeue(); }
             if (msg == null) break;
 
-            // 신뢰도 필터
             if (msg.conf < minConfidence) continue;
 
-            // 최신 상태 갱신
-            typeId = Mathf.Clamp(msg.type, 0, 4);
-            typeLabel = string.IsNullOrEmpty(msg.label) ? ((SwingClass)typeId).ToString() : msg.label;
+            typeId = LabelToTypeId(msg.@class);
+            if (typeId < 0) continue;
+
+            typeLabel = msg.@class;
             confidence = msg.conf;
-            swingSpeed = msg.strength;
 
             swingDetected = true;
-            HandleSwingByClass();   // 클래스→함수 디스패치
-            swingDetected = false;  // 중복 방지
+            HandleSwingByClass();
+            swingDetected = false;
+        }
+
+        // ---------- 점프 처리 ----------
+        while (true)
+        {
+            JumpMsgPy jmsg = null;
+            lock (locker) { if (jumpInbox.Count > 0) jmsg = jumpInbox.Dequeue(); }
+            if (jmsg == null) break;
+
+            lastJumpSpeed = jmsg.speed;
+            jumpDetected = true;
+
+            if (autoMovement != null)
+            {
+                try { autoMovement.Jump(); }
+                catch (Exception ex) { Debug.LogWarning($"[PoseReceiver] autoMovement.Jump() error: {ex.Message}"); }
+            }
+            else
+            {
+                Debug.Log($"[PoseReceiver] Jump received (speed={lastJumpSpeed:F3}) but AutoMovement not assigned.");
+            }
+
+            // 한 프레임 내 중복 호출 방지용 플래그 리셋
+            jumpDetected = false;
         }
     }
 
-    // 모델 5클래스 → PlayerShooting 함수 매핑
-    // 0=Clear → Clear(), 1=Drive → Drive(), 2=Drop → Drop(),
-    // 3=Under → UnderStrong/UnderWeak(속도 분기), 4=Hairpin → Hairpin()
     private void HandleSwingByClass()
     {
         if (playerShooting == null) return;
@@ -142,20 +201,8 @@ public class PoseReceiver : MonoBehaviour
                 break;
 
             case (int)SwingClass.Under:
-                if (swingSpeed >= strongSpeed)
-                {
-                    Debug.Log($"➡ UnderStrong (speed={swingSpeed:F2}, conf={confidence:F2})");
-                    playerShooting.UnderSwing();
-                }
-                else if (swingSpeed >= weakSpeed)
-                {
-                    Debug.Log($"➡ UnderWeak (speed={swingSpeed:F2}, conf={confidence:F2})");
-                    playerShooting.Hairpin();
-                }
-                else
-                {
-                    Debug.Log($"➡ Under(too weak) skip (speed={swingSpeed:F2})");
-                }
+                Debug.Log($"➡ Under (conf={confidence:F2})");
+                playerShooting.UnderSwing();
                 break;
 
             case (int)SwingClass.Hairpin:

@@ -1,0 +1,33 @@
+python scripts/01_tag_events.py dataset/raw_videos/S001_side.mp4 dataset/events/S001_side.csv
+
+python scripts/01_tag_events.py
+
+python scripts/run_02_all.py
+
+python scripts/run_03_all.py
+
+python scripts/check_counts.py
+
+python scripts/04_split_dataset.py
+
+python scripts/05_train_tcn.py
+
+python scripts/06_export_onnx.py
+
+python pose_infer_onnx.py
+
+python pose_infer_onnx_videotest.py
+
+cd C:\Users\tjddn\Documents\GitHub\Badminton\MP_project
+venv\Scripts\activate
+
+cd C:\Users\tjddn\Documents\GitHub\Badminton\MP_project
+venv\Scripts\activate
+
+pyinstaller ^
+  --onefile ^
+  --name pose_infer_onnx ^
+  --add-data "tcn.onnx;." ^
+  --add-data "tcn_meta.json;." ^
+  --add-data "C:\Users\tjddn\venv\Lib\site-packages\mediapipe\modules;mediapipe\modules" ^
+  pose_infer_onnx.py
