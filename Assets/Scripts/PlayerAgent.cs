@@ -12,21 +12,15 @@ public class PlayerAgent : Agent
     public EnemyShooting shooting;                 // 스윙 실행용
     public SwingZone overZone;                     // 오버 스윙 존 (Clear, Drop)
     public SwingZone underZone;                    // 언더 스윙 존 (Hairpin, Drive, Under)
+    public SwingZone SmashDetect;          // 스매시
     public Collider myCourtCollider;               // "MySide" 태그를 가진 콜라이더
     public ReinforcementLearningManager rl;        // courtHalfWidthX/Z 등 값 참조
+
 
     [Header("태그/이름")]
     public string shuttlecockTag = "Shuttlecock";  
     public string goalTag = "Goal";
 
-    [Header("보상")]
-    public float stepCenteringWeight = 0.3f;      // 낙하지점 근접 shaping 계수(프레임당)
-    public float hitReward = 2.0f;                 // 셔틀 타격 성공 보상
-    public float timePenalty = -0.0005f;           // 소량 지연 패널티
-    public float wrongZoneSwingPenalty = -0.3f;    // 잘못된 존에서 스윙 선택 패널티
-	public float outOfCourtPenalty = -0.005f;       // 내 코트 벗어남 패널티 (프레임당)
-    public float centerProgressWeight = 0.1f;      // 낙하지점 근접 '진전' 보상 가중치
-	public float swingAppropriateReward = 2.0f;    // 네트 거리 기준 적절한 스윙 보상
 
     [Header("에피소드 종료(랠리)")]
     public float landYThreshold = 0.7f;   // 셔틀 착지로 간주할 높이 
@@ -45,7 +39,6 @@ public class PlayerAgent : Agent
 	float _epHitSum = 0f;
 	int[] _epSwingExecCounts = new int[5];           // Clear, Drop, Hairpin, Drive, Under 실행 횟수
 	int _epWrongZoneSelectCount = 0;
-    float _prevCloseness = 0f;                       // 이전 프레임의 goal 근접도
 	bool _overPrev = false, _underPrev = false;      // 이전 프레임 존 상태
 	bool _overActiveLastFrame = false, _underActiveLastFrame = false; // 존 활성 상태(이전 프레임)
 	bool _overSwungThisEntry = false, _underSwungThisEntry = false;   // 존 '이번 진입' 동안 스윙 실행 여부
@@ -65,6 +58,20 @@ public class PlayerAgent : Agent
     int _lastLoggedSwing = -1;  // 마지막으로 로그를 출력한 스윙
 
 
+    bool smashMode = false;   // 점프 중 스매시 활성화 모드
+
+    public bool forceSmashTest = true;
+
+    float prevDropDist = 5f;
+
+    // ===== 평가 지표 =====
+    float prevGoalDist = 999f;   // 이전 스텝의 goal 거리
+    float goalDistSum = 0f;      // 에피소드 동안의 거리 변화 누적
+    int goalDistSteps = 0;       // 거리 측정한 총 스텝 수
+
+    // 스윙 기록
+    int[] swingHistory = new int[6]; // Clear, Drop, Hairpin, Drive, Under, Smash 카운트
+
     public bool mySideIsPositiveZ = false;
 
 	
@@ -78,7 +85,7 @@ public class PlayerAgent : Agent
     }
 
     // === 공통 상수/유틸 ===
-    static readonly string[] SwingNames = { "Clear", "Drop", "Hairpin", "Drive", "Under" };
+    static readonly string[] SwingNames = { "Clear", "Drop", "Hairpin", "Drive", "Under", "Smash"};
 
     bool IsOutsideCourtXZ(Vector3 p)
     {
@@ -87,12 +94,6 @@ public class PlayerAgent : Agent
         return (p.x < b.min.x || p.x > b.max.x || p.z < b.min.z || p.z > b.max.z);
     }
 
-    void ApplyWrongZonePenalty()
-    {
-        AddReward(wrongZoneSwingPenalty);
-        _epWrongZoneSum += wrongZoneSwingPenalty;
-        _epWrongZoneSelectCount++;
-    }
 
 	// === 헬퍼 메서드(중복 제거) ===
 	bool IsOverSwingIndex(int s) { return s == 0 || s == 1; }
@@ -104,7 +105,48 @@ public class PlayerAgent : Agent
 		if (IsUnderSwingIndex(swing)) return HasTargetsIn(underZone);
 		return false;
 	}
-	void ExecuteSwingByIndex(int swing)
+    float GetCourtNormalizedDistance()
+    {
+        if (!rl) return 0f;
+        float cw = rl.courtHalfWidthX;
+        float cz = rl.courtHalfLengthZ;
+
+        Vector3 pos = transform.position;
+        float dx = pos.x / cw;
+        float dz = pos.z / cz;
+        return Mathf.Clamp01(new Vector2(dx, dz).magnitude);
+    }
+
+    void RequestSmash()
+    {
+        // 이미 점프 중이면 또 Jump() 호출하지 않음
+        if (!smashMode)
+        {
+            movement.Jump();
+            smashMode = true;
+            Debug.Log("스매시 모드 ON - 점프 시작");
+        }
+    }
+    bool GoalIsOnMyCourt()
+    {
+        if (myCourtCollider == null) return false;
+        GameObject goalObj = GameObject.FindGameObjectWithTag(goalTag);
+        if (goalObj == null) return false;
+
+        Bounds b = myCourtCollider.bounds;
+        Vector3 g = goalObj.transform.position;
+
+        return (g.x >= b.min.x && g.x <= b.max.x &&
+                g.z >= b.min.z && g.z <= b.max.z);
+    }
+
+    Vector3 GetCourtCenter()
+    {
+        Bounds b = myCourtCollider.bounds;
+        return new Vector3(b.center.x, transform.position.y, b.center.z);
+    }
+
+    void ExecuteSwingByIndex(int swing)
 	{
 		switch (swing)
 		{
@@ -113,6 +155,7 @@ public class PlayerAgent : Agent
 			case 2: shooting.Hairpin(); break;
 			case 3: shooting.Drive(); break;
 			case 4: shooting.Under(); break;
+            case 5: RequestSmash(); break;
 			default: break;
 		}
 	}
@@ -140,8 +183,15 @@ public class PlayerAgent : Agent
 		if (overHitRange && _overSwungThisEntry) return false;
 		if (underHitRange && _underSwungThisEntry) return false;
 
-		// 오버 존에서의 처리
-		if (overHitRange && overZone != null)
+        if (smashMode)
+        {
+            activeZoneType = SwingZone.ZoneType.Over;
+            return false;  // 스매시 모드 중이면 다른 스윙 금지
+        }
+       
+
+        // 오버 존에서의 처리
+        if (overHitRange && overZone != null)
 		{
 			if (IsOverSwingIndex(swing))
 			{
@@ -160,8 +210,6 @@ public class PlayerAgent : Agent
 			}
 			else if (IsUnderSwingIndex(swing))
 			{
-				// 잘못된 스윙 → 패널티
-				ApplyWrongZonePenalty();
 				return false;
 			}
 		}
@@ -186,34 +234,13 @@ public class PlayerAgent : Agent
 			}
 			else if (IsOverSwingIndex(swing))
 			{
-				// 잘못된 스윙 → 패널티
-				ApplyWrongZonePenalty();
 				return false;
 			}
 		}
 
 		return false;
 	}
-	void MaybeRewardAppropriateSwing(int swing, bool executedThisStep, float distanceRatio)
-	{
-		if (!executedThisStep) return;
-		if (distanceRatio > 0.6f)
-		{
-			if (swing == 0 || swing == 3)
-			{
-			AddReward(swingAppropriateReward);
-			_epSwingAppropriateSum += swingAppropriateReward;
-			}
-		}
-		else if (distanceRatio < 0.4f)
-		{
-			if (swing == 1 || swing == 2 || swing == 4)
-			{
-			AddReward(swingAppropriateReward);
-			_epSwingAppropriateSum += swingAppropriateReward;
-			}
-		}
-	}
+
 
 
     public override void Initialize()
@@ -259,6 +286,12 @@ public class PlayerAgent : Agent
         _rb.velocity = Vector3.zero;
         movement.SetMoveInput(Vector2.zero);
 
+        prevGoalDist = 5f;
+        goalDistSum = 0f;
+        goalDistSteps = 0;
+
+        swingHistory = new int[6];  // 스윙 기록 리셋
+
         // trainingMode 확인 (에피소드마다 확인)
         if (movement) movement.trainingMode = true;
 
@@ -277,7 +310,6 @@ public class PlayerAgent : Agent
 		_epHitSum = 0f;
 		_epSwingExecCounts = new int[5];
 		_epWrongZoneSelectCount = 0;
-        _prevCloseness = 0f;
 		_overPrev = _underPrev = false;
 		_lastSwingAction = -1;
 		_nextSwingTime = 0f;
@@ -289,65 +321,90 @@ public class PlayerAgent : Agent
 
     // === 관측(OBS) ===
     // ReinforcementLearningManager가 다루는 값들 기반:
-    // - Player 정규화 위치 x,z (courtHalfWidthX/Z 기준)
-    // - Goal 정규화 x,z (표시용 규칙과 동일)
-    // - Goal 코트 밖 여부 isOutOfCourt (float)
-    // - "플레이어 기준" 셔틀콕 상대 위치 x,y,z
-    // - 셔틀콕의 네트 기준 정규화 x,z
-    // - 셔틀콕 속력(speed)
-    //
-    // 총 11 floats
+
     public override void CollectObservations(VectorSensor sensor)
     {
         float cw = rl ? rl.courtHalfWidthX : 11f;
         float cz = rl ? rl.courtHalfLengthZ : 20f;
 
-        // ① Goal 낙하 지점 예측 (x,z 정규화 + 코트밖 여부)
-        var goal = GameObject.FindGameObjectWithTag(goalTag);
-        float gXDisp = 0f, gZDisp = 0f, gOut = 0f;
-        if (goal)
+        // --- Player 기본 정보 ---
+        Vector3 pPos = transform.position;
+        bool player_courtIn = !IsOutsideCourtXZ(pPos);
+
+        sensor.AddObservation(player_courtIn ? 1f : 0f);
+
+        // --- 공 정보 ---
+        GameObject sc = FindNearestShuttlecock();
+        Vector3 ballPos = sc ? sc.transform.position : Vector3.zero;
+
+        float ball_height = Mathf.Clamp01(ballPos.y / 10f);
+        sensor.AddObservation(ball_height);
+
+        // z방향 상대 거리
+        //float ball_distance_z = Mathf.Clamp((ballPos.z - pPos.z) / cz, -1f, 1f);
+        //sensor.AddObservation(ball_distance_z);
+
+        // x방향 상대 거리
+        //float ball_distance_x = Mathf.Clamp((ballPos.x - pPos.x) / cw, -1f, 1f);
+        //sensor.AddObservation(ball_distance_x);
+
+        // --- canLong / canShort ---
+        float absZ = Mathf.Abs(ballPos.z);
+        bool ball_canLong = absZ >= cz * 0.5f;   // 먼 거리
+        bool ball_canShort = absZ < cz * 0.5f;   // 짧은 거리
+
+        sensor.AddObservation(ball_canLong ? 1f : 0f);
+        sensor.AddObservation(ball_canShort ? 1f : 0f);
+
+        // === Over / Under Zone 기반 가능 여부 ===
+        bool canOver = false;
+        bool canUnder = false;
+
+        if (overZone != null)
+            canOver = overZone.GetShuttlecocks().Count > 0;
+
+        if (underZone != null)
+            canUnder = underZone.GetShuttlecocks().Count > 0;
+
+        sensor.AddObservation(canOver ? 1f : 0f);
+        sensor.AddObservation(canUnder ? 1f : 0f);
+
+        // --- Smash 가능 여부 ---
+        bool ball_canSmash = SmashDetect != null && SmashDetect.GetShuttlecocks().Count > 0;
+        sensor.AddObservation(ball_canSmash ? 1f : 0f);
+
+        // --- 공이 코트 안에 있는지 ---
+        bool ball_courtIn = !IsOutsideCourtXZ(ballPos);
+        sensor.AddObservation(ball_courtIn ? 1f : 0f);
+
+        // ===== 내 턴 여부 추가 =====
+        sensor.AddObservation(isMyTurn ? 1f : 0f);
+
+        // ===== 공의 예상 착지 위치(goal) 상대 좌표 =====
+        GameObject goalObj = GameObject.FindGameObjectWithTag(goalTag);
+        if (goalObj != null)
         {
-            Vector3 g = goal.transform.position;
-            gXDisp = Mathf.Clamp(g.x, -cw, cw) / cw;
-            gZDisp = Mathf.Clamp(g.z, -cz, cz) / cz;
+            Vector3 gp = goalObj.transform.position;
 
-            float gXRaw = g.x / cw;
-            float gZRaw = g.z / cz;
-            gOut = (Mathf.Abs(gXRaw) > 1f || Mathf.Abs(gZRaw) > 1f) ? 1f : 0f;
+            float dx = gp.x - pPos.x;
+            float dz = gp.z - pPos.z;
+
+            float maxDist = Mathf.Sqrt(cw * cw + cz * cz);
+            float dist = Mathf.Clamp01(Vector3.Distance(pPos, gp) / maxDist);
+
+            //Debug.Log($"x: {dx / cw},  z: {dz / cz},  dist: {dist}");
+
+            // 정규화된 상대 좌표 (코트 크기 기준 normalize)
+            sensor.AddObservation(dx / cw);  // -1~1
+            sensor.AddObservation(dz / cz);  // -1~1
+            sensor.AddObservation(dist);     // 0~1
         }
-        sensor.AddObservation(gXDisp);
-        sensor.AddObservation(gZDisp);
-        sensor.AddObservation(gOut);
-
-        // ② 셔틀콕 상대 위치 (x,y,z)
-        var sc = FindNearestShuttlecock();
-        Vector3 rel = Vector3.zero;
-        if (sc)
-            rel = sc.transform.position - transform.position;
-
-        sensor.AddObservation(Mathf.Clamp(rel.x / cw, -1f, 1f));
-        sensor.AddObservation(Mathf.Clamp(rel.y / 10f, -1f, 1f));
-        sensor.AddObservation(Mathf.Clamp(rel.z / cz, -1f, 1f));
-
-        // ③ 셔틀콕이 타격 범위 안에 있는지 (0 or 1)
-        float hitPossible = _hitRange ? 1f : 0f;
-        sensor.AddObservation(hitPossible);
-
-        // ④ 네트 중심(z=0)으로부터의 거리 (0~1 정규화)
-        float netDistance = Mathf.Abs(transform.position.z) / cz;
-        sensor.AddObservation(netDistance);
-
-        // ⑤ 코트 중심(x,z) 상대 거리 (정규화)
-        float centerX = Mathf.Clamp(transform.position.x, -cw, cw) / cw;
-        float centerZ = Mathf.Clamp(transform.position.z, -cz, cz) / cz;
-        sensor.AddObservation(centerX);
-        sensor.AddObservation(centerZ);
-
-        // ⑥ 턴 정보 (내 턴 [1,0], 상대 턴 [0,1])
-        float myTurn = isMyTurn ? 1f : 0f;
-        float oppTurn = isMyTurn ? 0f : 1f;
-        sensor.AddObservation(myTurn);
-        sensor.AddObservation(oppTurn);
+        else
+        {
+            sensor.AddObservation(0.5f);
+            sensor.AddObservation(0.5f);
+            sensor.AddObservation(1f);
+        }
     }
 
     // === 행동 적용 ===
@@ -360,7 +417,7 @@ public class PlayerAgent : Agent
         var da = actions.DiscreteActions;
 
         Vector2 move = new Vector2(Mathf.Clamp(ca[0], -1f, 1f), Mathf.Clamp(ca[1], -1f, 1f));
-        int swing = (da.Length >= 1) ? Mathf.Clamp(da[0], 0, 4) : 0;  // 0~4 (5가지 스윙: Clear, Drop, Drive, Smash, Hairpin)
+        int swing = (da.Length >= 1) ? Mathf.Clamp(da[0], 0, 5) : 0;  // 0~4 (5가지 스윙: Clear, Drop, Drive, Smash, Hairpin)
         
         // movement 컴포넌트 null 체크 및 초기화
         if (movement == null)
@@ -402,75 +459,101 @@ public class PlayerAgent : Agent
 		_combinedActiveLastFrame = combinedHitRange;
 
         // ----- 보상(Reward) -----
-		AddReward(timePenalty); // 소량 시간 패널티
-		_epTimePenaltySum += timePenalty;
-        
-		// 내 코트 벗어남 패널티 (XZ 평면 기준)
-		if (IsOutsideCourtXZ(transform.position))
-		{
-			AddReward(outOfCourtPenalty);
-			_epOutOfCourtSum += outOfCourtPenalty;
-		}
 
-		// 네트까지의 거리 계산 (거리에 따라 적절한 스윙 타입 선택)
-        float cw = rl ? rl.courtHalfWidthX : 11f;
-        float cz = rl ? rl.courtHalfLengthZ : 20f;
-        var goal = GameObject.FindGameObjectWithTag(goalTag);
-		float netDistanceToTarget = 0f;
-        bool goalValid = false;
-        
-        if (goal != null)
+        // ==== 정답 스윙 보상 (+5) ====
+        if (executedThisStep)
         {
-			Vector3 goalPos = goal.transform.position;
-			// 네트(z=0)까지의 절대 거리 사용
-			netDistanceToTarget = Mathf.Abs(goalPos.z);
-			float maxDistance = cz; // 네트에서 베이스라인까지 반코트 길이
-            goalValid = true;
-            
-			// 거리에 따른 적절한 스윙 타입 보상 (스윙이 실제 실행된 프레임에만 1회 지급)
-			// 멀리 쳐야 할 때(네트 거리 > 0.6*max): Clear(0), Drive(3) 적합
-			// 가까이 쳐야 할 때(네트 거리 < 0.4*max): Drop(1), Hairpin(2), Under(4) 적합
-			float distanceRatio = netDistanceToTarget / maxDistance;
-
-            MaybeRewardAppropriateSwing(swing, executedThisStep, distanceRatio);
-        }
-
-        if (goalValid && goal && rl)
-        {
-            float gX = Mathf.Clamp(goal.transform.position.x, -cw, cw) / cw; // [-1,1]
-            float gZ = Mathf.Clamp(goal.transform.position.z, -cz, cz) / cz; // [-1,1]
-            float gOut = (Mathf.Abs(goal.transform.position.x / cw) > 1f ||
-                          Mathf.Abs(goal.transform.position.z / cz) > 1f) ? 1f : 0f;
-
-            // 관측-보상 정합성: Goal이 내 코트(XZ 기준)에 있으면 내 턴으로 간주
-            if (myCourtCollider != null)
+            GameObject sc = FindNearestShuttlecock();
+            if (sc != null)
             {
-                Bounds b = myCourtCollider.bounds;
-                Vector3 gp = goal.transform.position;
-                bool goalOnMySideXZ = (gp.x >= b.min.x && gp.x <= b.max.x && gp.z >= b.min.z && gp.z <= b.max.z);
-                isMyTurn = goalOnMySideXZ;
-            }
+                Vector3 ballPos = sc.transform.position;
 
-            // 내 턴일 때 인코트 목표 지점을 따라가도록 shaping
-            if (gOut < 0.5f && isMyTurn)
-            {
-                // 내 턴 & 인코트일 때만 낙하지점 근접 shaping 부여
-                Vector2 pN = new Vector2(
-                    Mathf.Clamp(transform.position.x, -cw, cw) / cw,
-                    Mathf.Clamp(transform.position.z, -cz, cz) / cz
-                );
-                Vector2 gN = new Vector2(gX, gZ);
+                float cw = rl ? rl.courtHalfWidthX : 11f;
+                float cz = rl ? rl.courtHalfLengthZ : 20f;
 
-                float dist = Vector2.Distance(pN, gN);                  // 0..~2.8284 (√8)
-                float closeness = Mathf.Clamp01(1f - (dist / 2.8284f)); // 0..1
-                // 가까워진 양(양수)일 때만 보상
-                float delta = Mathf.Max(0f, closeness - _prevCloseness);
-                float progR = centerProgressWeight * delta;
-                AddReward(progR);
-                _epCenteringSum += progR;
-                _prevCloseness = closeness;
+                bool canLong = Mathf.Abs(ballPos.z) >= cz * 0.5f;
+                bool canShort = !canLong;
+
+                bool canOver = ballPos.y >= 2.0f;
+                bool canUnder = !canOver;
+
+                switch (swing)
+                {
+                    case 0: // Clear
+                        if (canLong && canOver) AddReward(2f);
+                        break;
+
+                    case 1: // Drop
+                        if (canShort && canOver) AddReward(2f);
+                        break;
+
+                    case 2: // Hairpin
+                        if (canShort && canUnder) AddReward(2f);
+                        break;
+
+                    case 3: // Drive
+                        if (canLong && canOver) AddReward(2f);
+                        break;
+
+                    case 4: // Under
+                        if (canLong && canUnder) AddReward(2f);
+                        break;
+
+                    case 5:
+                        // Smash 보상은 LateUpdate()에서 처리
+                        break;
+                }
             }
         }
+        // ===== 목표 지점 기반 shaping reward =====
+        GameObject goalObj = GameObject.FindGameObjectWithTag(goalTag);
+
+        // === 목표 지점 상대 좌표 기반 보상 ===
+        if (goalObj != null)
+        {
+            Vector3 gp = goalObj.transform.position;
+            Vector3 pPos = transform.position;
+
+            float cw = rl ? rl.courtHalfWidthX : 11f;
+            float cz = rl ? rl.courtHalfLengthZ : 20f;
+
+            float dxNorm = (gp.x - pPos.x) / cw;   // -1~1
+            float dzNorm = (gp.z - pPos.z) / cz;   // -1~1
+
+            float maxDist = Mathf.Sqrt(cw * cw + cz * cz);
+            float distNorm = Vector3.Distance(pPos, gp) / maxDist; // 0~1
+
+            // 0에 가까울수록 좋은 값 → 1 - |값| 으로 변환
+            float xScore = 1f - Mathf.Abs(dxNorm);
+            float zScore = 1f - Mathf.Abs(dzNorm);
+            float distScore = 1f - distNorm;
+
+            // 3개 평균
+            float positionScore = (xScore + zScore + distScore) / 3f;
+
+            // 가중치 적용 (0.005 정도 추천)
+            float posReward = positionScore * 0.005f;
+
+            AddReward(posReward);
+
+            // 텐서보드 기록
+            Academy.Instance.StatsRecorder.Add("eval/pos_score", positionScore);
+        }
+
+        // === 스매시 조건 체크 ===
+        bool smashAvailable =
+            SmashDetect != null &&
+            SmashDetect.GetShuttlecocks().Count > 0;
+
+        float courtDist = GetCourtNormalizedDistance();  // 0~1
+
+        // 점프 시작 조건
+        //if (smashAvailable && courtDist >= 0.5f)
+        if (smashAvailable)
+            {
+            RequestSmash();
+        }
+
 
     }
 
@@ -489,9 +572,12 @@ public class PlayerAgent : Agent
         else if (Input.GetKey(KeyCode.Alpha3)) da[0] = 2;  // Hairpin
         else if (Input.GetKey(KeyCode.Alpha4)) da[0] = 3;  // Drive
         else if (Input.GetKey(KeyCode.Alpha5)) da[0] = 4;  // Under
+        else if (Input.GetKey(KeyCode.Alpha6)) da[0] = 5;  // Under
         else da[0] = 0;  // 기본값: Clear
 
     }
+
+
 
 
     // 셔틀콕 충돌 감지 → 보상
@@ -500,10 +586,7 @@ public class PlayerAgent : Agent
         if (_hitGivenThisStep) return;
         if (collision.gameObject.CompareTag(shuttlecockTag))
         {
-            // Shuttlecock 쪽에서 Player의 SphereCollider와만 충돌 허용되므로
-            // 이 이벤트가 오면 "타격"으로 간주 가능
-			AddReward(hitReward);
-			_epHitSum += hitReward;
+
             _hitGivenThisStep = true;
         }
     }
@@ -537,6 +620,24 @@ public class PlayerAgent : Agent
             {
                 _landedDetected = true;
                 _landedAt = Time.realtimeSinceStartup;
+            }
+        }
+
+        if (smashMode)
+        {
+            // 공이 SmashDetect 안에 있으면 바로 Smash
+            if (overZone != null && overZone.GetShuttlecocks().Count > 0)
+            {
+                Debug.Log("스매시 발동!");
+                shooting.Smash();
+                AddReward(2f);   // ★ 스매시 보상 추가!
+                smashMode = false;
+            }
+
+            // 점프가 끝났다면 스매시 모드 종료
+            if (movement.isGrounded)
+            {
+                smashMode = false;
             }
         }
 
@@ -575,16 +676,21 @@ public class PlayerAgent : Agent
 	void LogEpisodeRewards()
 	{
 		float total = GetCumulativeReward();
-		string swingCounts = string.Format("{0}:{1}, {2}:{3}, {4}:{5}, {6}:{7}, {8}:{9}",
+		string swingCounts = string.Format("{0}:{1}, {2}:{3}, {4}:{5}, {6}:{7}, {8}:{9}, {10}:{11}",
 			SwingNames[0], _epSwingExecCounts.Length > 0 ? _epSwingExecCounts[0] : 0,
 			SwingNames[1], _epSwingExecCounts.Length > 1 ? _epSwingExecCounts[1] : 0,
 			SwingNames[2], _epSwingExecCounts.Length > 2 ? _epSwingExecCounts[2] : 0,
 			SwingNames[3], _epSwingExecCounts.Length > 3 ? _epSwingExecCounts[3] : 0,
-			SwingNames[4], _epSwingExecCounts.Length > 4 ? _epSwingExecCounts[4] : 0
+			SwingNames[4], _epSwingExecCounts.Length > 4 ? _epSwingExecCounts[4] : 0,
+            SwingNames[5], _epSwingExecCounts.Length > 5 ? _epSwingExecCounts[5] : 0
 		);
 
 		Debug.Log(
 			$"[EpLog] total={total:F3} | time={_epTimePenaltySum:F3}, center={_epCenteringSum:F3}, outCourt={_epOutOfCourtSum:F3}, wrongZone={_epWrongZoneSum:F3} (cnt={_epWrongZoneSelectCount}), swingFit={_epSwingAppropriateSum:F3}, hit={_epHitSum:F3} | swings={{ {swingCounts} }}"
 		);
-	}
+        float avgGoalDelta = (goalDistSteps > 0 ? goalDistSum / goalDistSteps : 0f);
+
+        // 텐서보드 기록
+        Academy.Instance.StatsRecorder.Add("eval/avg_goal_delta", avgGoalDelta);
+    }
 }
