@@ -99,7 +99,6 @@ public class ArduinoReceiver : MonoBehaviour
 
         if (jumpRequested && playerMovement != null)
         {
-            playerMovement.Jump();
             jumpRequested = false;
         }
 

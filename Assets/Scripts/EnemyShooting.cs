@@ -32,7 +32,7 @@ public class EnemyShooting : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) Hairpin();
         if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) Drive();
         if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) Under();
-        //if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)) Smash();
+        if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)) Smash();
 
 
 
@@ -126,8 +126,21 @@ public class EnemyShooting : MonoBehaviour
         if (targets.Count == 0) return;
         LaunchToAll(0f, 30f, 20f, "언더", targets);
     }
-  
-    
+
+    public void Smash()
+    {
+        var list = overZone.GetShuttlecocks();
+        var targets = new List<Shuttlecock>(list);
+        if (targets.Count == 0)
+        {
+            Debug.Log("[EnemyShooting] Smash FAILED: no targets in overZone");
+            return;
+        }
+
+        LaunchToAll(0f, -5f, 30f, "스매시!!!!!!!!!!!!", targets);
+    }
+
+
     void OnTriggerEnter(Collider other)
     {
         Shuttlecock sc = other.GetComponent<Shuttlecock>();
