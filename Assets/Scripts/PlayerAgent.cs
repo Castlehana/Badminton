@@ -9,7 +9,7 @@ public class PlayerAgent : Agent
 {
     [Header("참조")]
     public PlayerMovement movement;
-    public EnemyShooting shooting;                 // 스윙 실행용
+    public EnemyShooting_yejin shooting;                 // 스윙 실행용
     public SwingZone overZone;                     // 오버 스윙 존 (Clear, Drop)
     public SwingZone underZone;                    // 언더 스윙 존 (Hairpin, Drive, Under)
     public SwingZone SmashDetect;          // 스매시
