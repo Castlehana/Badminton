@@ -9,11 +9,11 @@ public class PlayerAgent_middle : Agent
 {
     [Header("참조")]
     public PlayerMovement movement;
-    public EnemyShooting shooting;                 // 스윙 실행용
+    public EnemyShooting_yejin shooting;                 // 스윙 실행용
     public SwingZone overZone;                     // 오버 스윙 존 (Clear, Drop, Drive)
     public SwingZone underZone;                    // 언더 스윙 존 (Hairpin, Under)
-    public Collider myCourtCollider;               // "MySide" 태그를 가진 콜라이더
-    public ReinforcementLearningManager rl;        // courtHalfWidthX/Z 등 값 참조
+    public Collider myCourtCollider;               
+    public ReinforcementLearningManager rl;        
 
     [Header("태그/이름")]
     public string shuttlecockTag = "Shuttlecock";  

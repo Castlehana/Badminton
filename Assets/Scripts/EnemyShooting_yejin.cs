@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyShooting : MonoBehaviour
+public class EnemyShooting_yejin : MonoBehaviour
 {
     [Header("Swing Zones")]
     public SwingZone overZone; // 오버 스윙 (Clear, Drop)용
@@ -72,7 +72,6 @@ public class EnemyShooting : MonoBehaviour
             yaw = UnityEngine.Random.Range(Mathf.Lerp(-5f, 0f, t), 0f);
         }
 
-        // 첫 번째 셔틀에 대해서만 로그 출력
         bool firstLogged = false;
         foreach (Shuttlecock sc in targets)
         {
