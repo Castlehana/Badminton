@@ -9,7 +9,7 @@ public class PlayerAgent : Agent
 {
     [Header("참조")]
     public PlayerMovement movement;
-    public EnemyShooting_yejin shooting;                 // 스윙 실행용
+    public EnemyShooting shooting;                 // 스윙 실행용
     public SwingZone overZone;                     // 오버 스윙 존 (Clear, Drop)
     public SwingZone underZone;                    // 언더 스윙 존 (Hairpin, Drive, Under)
     public SwingZone SmashDetect;          // 스매시
@@ -18,7 +18,7 @@ public class PlayerAgent : Agent
 
 
     [Header("태그/이름")]
-    public string shuttlecockTag = "Shuttlecock";  
+    public string shuttlecockTag = "Shuttlecock";
     public string goalTag = "Goal";
 
 
@@ -29,23 +29,23 @@ public class PlayerAgent : Agent
     bool _landedDetected;                 // 착지 감지 여부
     float _landedAt;                      // 착지 시각(Realtime)
 
-	[Header("에피소드 로깅")]
-	public bool logEpisodeRewards = true;             // 에피소드 리워드 요약 로그 출력 여부
-	float _epTimePenaltySum = 0f;
-	float _epCenteringSum = 0f;
-	float _epOutOfCourtSum = 0f;
-	float _epWrongZoneSum = 0f;
-	float _epSwingAppropriateSum = 0f;
-	float _epHitSum = 0f;
-	int[] _epSwingExecCounts = new int[5];           // Clear, Drop, Hairpin, Drive, Under 실행 횟수
-	int _epWrongZoneSelectCount = 0;
-	bool _overPrev = false, _underPrev = false;      // 이전 프레임 존 상태
-	bool _overActiveLastFrame = false, _underActiveLastFrame = false; // 존 활성 상태(이전 프레임)
-	bool _overSwungThisEntry = false, _underSwungThisEntry = false;   // 존 '이번 진입' 동안 스윙 실행 여부
-	bool _combinedActiveLastFrame = false;           // 오버/언더 통합 활성 상태(이전 프레임)
-	bool _swungThisCombinedEntry = false;            // 통합 존에 대한 '이번 진입' 동안 스윙 실행 여부
-	[Header("디버그")]
-	public bool logSwing = false;                      // 스윙 로그 출력 토글
+    [Header("에피소드 로깅")]
+    public bool logEpisodeRewards = true;             // 에피소드 리워드 요약 로그 출력 여부
+    float _epTimePenaltySum = 0f;
+    float _epCenteringSum = 0f;
+    float _epOutOfCourtSum = 0f;
+    float _epWrongZoneSum = 0f;
+    float _epSwingAppropriateSum = 0f;
+    float _epHitSum = 0f;
+    int[] _epSwingExecCounts = new int[5];           // Clear, Drop, Hairpin, Drive, Under 실행 횟수
+    int _epWrongZoneSelectCount = 0;
+    bool _overPrev = false, _underPrev = false;      // 이전 프레임 존 상태
+    bool _overActiveLastFrame = false, _underActiveLastFrame = false; // 존 활성 상태(이전 프레임)
+    bool _overSwungThisEntry = false, _underSwungThisEntry = false;   // 존 '이번 진입' 동안 스윙 실행 여부
+    bool _combinedActiveLastFrame = false;           // 오버/언더 통합 활성 상태(이전 프레임)
+    bool _swungThisCombinedEntry = false;            // 통합 존에 대한 '이번 진입' 동안 스윙 실행 여부
+    [Header("디버그")]
+    public bool logSwing = false;                      // 스윙 로그 출력 토글
 
     Rigidbody _rb;
     bool _hitGivenThisStep = false;                // 중복 지급 방지
@@ -53,7 +53,7 @@ public class PlayerAgent : Agent
 
     bool _hitRange = false;   // 셔틀이 타격 콜라이더 안에 있는지
     bool isMyTurn = false;    // 현재 내 턴 여부
-    
+
     int _lastSwingAction = -1;  // 이전 스윙 액션 (중복 실행 방지)
     int _lastLoggedSwing = -1;  // 마지막으로 로그를 출력한 스윙
 
@@ -74,10 +74,10 @@ public class PlayerAgent : Agent
 
     public bool mySideIsPositiveZ = false;
 
-	
-	[Header("쿨타임")]
-	public float swingCooldown = 0.5f;   // 스윙 시도 후 대기 시간(초)
-	float _nextSwingTime = 0f;
+
+    [Header("쿨타임")]
+    public float swingCooldown = 0.5f;   // 스윙 시도 후 대기 시간(초)
+    float _nextSwingTime = 0f;
 
     public void SetTurn(bool value)
     {
@@ -85,7 +85,7 @@ public class PlayerAgent : Agent
     }
 
     // === 공통 상수/유틸 ===
-    static readonly string[] SwingNames = { "Clear", "Drop", "Hairpin", "Drive", "Under", "Smash"};
+    static readonly string[] SwingNames = { "Clear", "Drop", "Hairpin", "Drive", "Under", "Smash" };
 
     bool IsOutsideCourtXZ(Vector3 p)
     {
@@ -95,16 +95,16 @@ public class PlayerAgent : Agent
     }
 
 
-	// === 헬퍼 메서드(중복 제거) ===
-	bool IsOverSwingIndex(int s) { return s == 0 || s == 1; }
-	bool IsUnderSwingIndex(int s) { return s == 2 || s == 3 || s == 4; }
-	bool HasTargetsIn(SwingZone zone) { return zone != null && zone.GetShuttlecocks().Count > 0; }
-	bool HasTargetsNowForSwing(int swing)
-	{
-		if (IsOverSwingIndex(swing)) return HasTargetsIn(overZone);
-		if (IsUnderSwingIndex(swing)) return HasTargetsIn(underZone);
-		return false;
-	}
+    // === 헬퍼 메서드(중복 제거) ===
+    bool IsOverSwingIndex(int s) { return s == 0 || s == 1; }
+    bool IsUnderSwingIndex(int s) { return s == 2 || s == 3 || s == 4; }
+    bool HasTargetsIn(SwingZone zone) { return zone != null && zone.GetShuttlecocks().Count > 0; }
+    bool HasTargetsNowForSwing(int swing)
+    {
+        if (IsOverSwingIndex(swing)) return HasTargetsIn(overZone);
+        if (IsUnderSwingIndex(swing)) return HasTargetsIn(underZone);
+        return false;
+    }
     float GetCourtNormalizedDistance()
     {
         if (!rl) return 0f;
@@ -147,99 +147,99 @@ public class PlayerAgent : Agent
     }
 
     void ExecuteSwingByIndex(int swing)
-	{
-		switch (swing)
-		{
-			case 0: shooting.Clear(); break;
-			case 1: shooting.Drop(); break;
-			case 2: shooting.Hairpin(); break;
-			case 3: shooting.Drive(); break;
-			case 4: shooting.Under(); break;
+    {
+        switch (swing)
+        {
+            case 0: shooting.Clear(); break;
+            case 1: shooting.Drop(); break;
+            case 2: shooting.Hairpin(); break;
+            case 3: shooting.Drive(); break;
+            case 4: shooting.Under(); break;
             case 5: RequestSmash(); break;
-			default: break;
-		}
-	}
-	void LogSwingIfChanged(int swing, SwingZone.ZoneType activeZoneType)
-	{
-		if (!logSwing) return;
-		if (swing == _lastLoggedSwing) return;
-		if (swing < 0 || swing >= SwingNames.Length) return;
-		Debug.Log($"[PlayerAgent] 스윙: {SwingNames[swing]} (존: {activeZoneType})");
-		_lastLoggedSwing = swing;
-	}
-	bool TryProcessSwingChange(int swing, bool overHitRange, bool underHitRange, out SwingZone.ZoneType activeZoneType)
-	{
-		activeZoneType = SwingZone.ZoneType.Over;
+            default: break;
+        }
+    }
+    void LogSwingIfChanged(int swing, SwingZone.ZoneType activeZoneType)
+    {
+        if (!logSwing) return;
+        if (swing == _lastLoggedSwing) return;
+        if (swing < 0 || swing >= SwingNames.Length) return;
+        Debug.Log($"[PlayerAgent] 스윙: {SwingNames[swing]} (존: {activeZoneType})");
+        _lastLoggedSwing = swing;
+    }
+    bool TryProcessSwingChange(int swing, bool overHitRange, bool underHitRange, out SwingZone.ZoneType activeZoneType)
+    {
+        activeZoneType = SwingZone.ZoneType.Over;
 
-		// 쿨타임 중이면 시도하지 않음
-		if (Time.time < _nextSwingTime)
-			return false;
+        // 쿨타임 중이면 시도하지 않음
+        if (Time.time < _nextSwingTime)
+            return false;
 
-		// 스윙존에 머무르는 동안은 1회만 스윙
-		if ((overHitRange || underHitRange) && _swungThisCombinedEntry)
-			return false;
+        // 스윙존에 머무르는 동안은 1회만 스윙
+        if ((overHitRange || underHitRange) && _swungThisCombinedEntry)
+            return false;
 
-		// 같은 존에 머무르는 동안은 1회만 스윙
-		if (overHitRange && _overSwungThisEntry) return false;
-		if (underHitRange && _underSwungThisEntry) return false;
+        // 같은 존에 머무르는 동안은 1회만 스윙
+        if (overHitRange && _overSwungThisEntry) return false;
+        if (underHitRange && _underSwungThisEntry) return false;
 
         if (smashMode)
         {
             activeZoneType = SwingZone.ZoneType.Over;
             return false;  // 스매시 모드 중이면 다른 스윙 금지
         }
-       
+
 
         // 오버 존에서의 처리
         if (overHitRange && overZone != null)
-		{
-			if (IsOverSwingIndex(swing))
-			{
-				// 올바른 스윙 → 실행
-				if (HasTargetsNowForSwing(swing))
-				{
-					activeZoneType = SwingZone.ZoneType.Over;
-					LogSwingIfChanged(swing, activeZoneType);
-					ExecuteSwingByIndex(swing);
-					_swungThisCombinedEntry = true;
-					_overSwungThisEntry = true;
-					if (swing >= 0 && swing < _epSwingExecCounts.Length) _epSwingExecCounts[swing]++;
-					_nextSwingTime = Time.time + swingCooldown;
-					return true;
-				}
-			}
-			else if (IsUnderSwingIndex(swing))
-			{
-				return false;
-			}
-		}
+        {
+            if (IsOverSwingIndex(swing))
+            {
+                // 올바른 스윙 → 실행
+                if (HasTargetsNowForSwing(swing))
+                {
+                    activeZoneType = SwingZone.ZoneType.Over;
+                    LogSwingIfChanged(swing, activeZoneType);
+                    ExecuteSwingByIndex(swing);
+                    _swungThisCombinedEntry = true;
+                    _overSwungThisEntry = true;
+                    if (swing >= 0 && swing < _epSwingExecCounts.Length) _epSwingExecCounts[swing]++;
+                    _nextSwingTime = Time.time + swingCooldown;
+                    return true;
+                }
+            }
+            else if (IsUnderSwingIndex(swing))
+            {
+                return false;
+            }
+        }
 
-		// 언더 존에서의 처리
-		if (underHitRange && underZone != null)
-		{
-			if (IsUnderSwingIndex(swing))
-			{
-				// 올바른 스윙 → 실행
-				if (HasTargetsNowForSwing(swing))
-				{
-					activeZoneType = SwingZone.ZoneType.Under;
-					LogSwingIfChanged(swing, activeZoneType);
-					ExecuteSwingByIndex(swing);
-					_swungThisCombinedEntry = true;
-					_underSwungThisEntry = true;
-					if (swing >= 0 && swing < _epSwingExecCounts.Length) _epSwingExecCounts[swing]++;
-					_nextSwingTime = Time.time + swingCooldown;
-					return true;
-				}
-			}
-			else if (IsOverSwingIndex(swing))
-			{
-				return false;
-			}
-		}
+        // 언더 존에서의 처리
+        if (underHitRange && underZone != null)
+        {
+            if (IsUnderSwingIndex(swing))
+            {
+                // 올바른 스윙 → 실행
+                if (HasTargetsNowForSwing(swing))
+                {
+                    activeZoneType = SwingZone.ZoneType.Under;
+                    LogSwingIfChanged(swing, activeZoneType);
+                    ExecuteSwingByIndex(swing);
+                    _swungThisCombinedEntry = true;
+                    _underSwungThisEntry = true;
+                    if (swing >= 0 && swing < _epSwingExecCounts.Length) _epSwingExecCounts[swing]++;
+                    _nextSwingTime = Time.time + swingCooldown;
+                    return true;
+                }
+            }
+            else if (IsOverSwingIndex(swing))
+            {
+                return false;
+            }
+        }
 
-		return false;
-	}
+        return false;
+    }
 
 
 
@@ -248,7 +248,7 @@ public class PlayerAgent : Agent
         if (!movement) movement = GetComponent<PlayerMovement>();
         if (!_rb) _rb = GetComponent<Rigidbody>();
         if (!rl) rl = FindObjectOfType<ReinforcementLearningManager>();
-        
+
         // 오버/언더 존 자동 찾기
         if (!overZone || !underZone)
         {
@@ -261,7 +261,7 @@ public class PlayerAgent : Agent
                     underZone = zone;
             }
         }
-        
+
         // "MySide" 태그를 가진 콜라이더 자동 찾기
         if (!myCourtCollider)
         {
@@ -272,12 +272,12 @@ public class PlayerAgent : Agent
 
         if (movement) movement.trainingMode = true;
 
-		// Shooter가 존 참조를 갖도록 보정 (추론 씬에서 누락될 수 있음)
-		if (shooting != null)
-		{
-			if (shooting.overZone == null) shooting.overZone = overZone;
-			if (shooting.underZone == null) shooting.underZone = underZone;
-		}
+        // Shooter가 존 참조를 갖도록 보정 (추론 씬에서 누락될 수 있음)
+        if (shooting != null)
+        {
+            if (shooting.overZone == null) shooting.overZone = overZone;
+            if (shooting.underZone == null) shooting.underZone = underZone;
+        }
     }
 
     public override void OnEpisodeBegin()
@@ -295,28 +295,28 @@ public class PlayerAgent : Agent
         // trainingMode 확인 (에피소드마다 확인)
         if (movement) movement.trainingMode = true;
 
-		// 랠리 상태 초기화
+        // 랠리 상태 초기화
         _trackedShuttle = null;
         _landedDetected = false;
         _landedAt = 0f;
         _lastLoggedSwing = -1;  // 스윙 로그 초기화
 
-		// 에피소드 리워드/카운트 초기화
-		_epTimePenaltySum = 0f;
-		_epCenteringSum = 0f;
-		_epOutOfCourtSum = 0f;
-		_epWrongZoneSum = 0f;
-		_epSwingAppropriateSum = 0f;
-		_epHitSum = 0f;
-		_epSwingExecCounts = new int[5];
-		_epWrongZoneSelectCount = 0;
-		_overPrev = _underPrev = false;
-		_lastSwingAction = -1;
-		_nextSwingTime = 0f;
-		_overActiveLastFrame = _underActiveLastFrame = false;
-		_overSwungThisEntry = _underSwungThisEntry = false;
-		_combinedActiveLastFrame = false;
-		_swungThisCombinedEntry = false;
+        // 에피소드 리워드/카운트 초기화
+        _epTimePenaltySum = 0f;
+        _epCenteringSum = 0f;
+        _epOutOfCourtSum = 0f;
+        _epWrongZoneSum = 0f;
+        _epSwingAppropriateSum = 0f;
+        _epHitSum = 0f;
+        _epSwingExecCounts = new int[5];
+        _epWrongZoneSelectCount = 0;
+        _overPrev = _underPrev = false;
+        _lastSwingAction = -1;
+        _nextSwingTime = 0f;
+        _overActiveLastFrame = _underActiveLastFrame = false;
+        _overSwungThisEntry = _underSwungThisEntry = false;
+        _combinedActiveLastFrame = false;
+        _swungThisCombinedEntry = false;
     }
 
     // === 관측(OBS) ===
@@ -418,7 +418,7 @@ public class PlayerAgent : Agent
 
         Vector2 move = new Vector2(Mathf.Clamp(ca[0], -1f, 1f), Mathf.Clamp(ca[1], -1f, 1f));
         int swing = (da.Length >= 1) ? Mathf.Clamp(da[0], 0, 5) : 0;  // 0~4 (5가지 스윙: Clear, Drop, Drive, Smash, Hairpin)
-        
+
         // movement 컴포넌트 null 체크 및 초기화
         if (movement == null)
         {
@@ -429,34 +429,34 @@ public class PlayerAgent : Agent
                 return;
             }
         }
-        
+
         movement.SetMoveInput(move);
 
         // 오버/언더 존에서 스윙 가능 여부 확인
         bool overHitRange = overZone != null && overZone.GetShuttlecocks().Count > 0;
         bool underHitRange = underZone != null && underZone.GetShuttlecocks().Count > 0;
         _hitRange = overHitRange || underHitRange;
-		bool combinedHitRange = _hitRange;
-		if (combinedHitRange && !_combinedActiveLastFrame) _swungThisCombinedEntry = false;
+        bool combinedHitRange = _hitRange;
+        if (combinedHitRange && !_combinedActiveLastFrame) _swungThisCombinedEntry = false;
 
-		// 스윙존 진입 감지 시 해당 존의 스윙-1회 플래그 리셋
-		if (overHitRange && !_overActiveLastFrame) _overSwungThisEntry = false;
-		if (underHitRange && !_underActiveLastFrame) _underSwungThisEntry = false;
+        // 스윙존 진입 감지 시 해당 존의 스윙-1회 플래그 리셋
+        if (overHitRange && !_overActiveLastFrame) _overSwungThisEntry = false;
+        if (underHitRange && !_underActiveLastFrame) _underSwungThisEntry = false;
 
-		// 이전 프레임 상태 기록(참고용)
-		_overPrev = overHitRange;
-		_underPrev = underHitRange;
+        // 이전 프레임 상태 기록(참고용)
+        _overPrev = overHitRange;
+        _underPrev = underHitRange;
 
-		// 스윙 트리거: 쿨타임 기반 매 프레임 시도(조건 불충족이면 내부에서 무시)
-		bool executedThisStep = false;
-		SwingZone.ZoneType activeZoneType = SwingZone.ZoneType.Over;
-		executedThisStep = TryProcessSwingChange(swing, overHitRange, underHitRange, out activeZoneType);
-		_lastSwingAction = swing;
+        // 스윙 트리거: 쿨타임 기반 매 프레임 시도(조건 불충족이면 내부에서 무시)
+        bool executedThisStep = false;
+        SwingZone.ZoneType activeZoneType = SwingZone.ZoneType.Over;
+        executedThisStep = TryProcessSwingChange(swing, overHitRange, underHitRange, out activeZoneType);
+        _lastSwingAction = swing;
 
-		// 현재 프레임의 존 활성 상태를 '이전 프레임'으로 기록
-		_overActiveLastFrame = overHitRange;
-		_underActiveLastFrame = underHitRange;
-		_combinedActiveLastFrame = combinedHitRange;
+        // 현재 프레임의 존 활성 상태를 '이전 프레임'으로 기록
+        _overActiveLastFrame = overHitRange;
+        _underActiveLastFrame = underHitRange;
+        _combinedActiveLastFrame = combinedHitRange;
 
         // ----- 보상(Reward) -----
 
@@ -550,7 +550,7 @@ public class PlayerAgent : Agent
         // 점프 시작 조건
         //if (smashAvailable && courtDist >= 0.5f)
         if (smashAvailable)
-            {
+        {
             RequestSmash();
         }
 
@@ -659,35 +659,35 @@ public class PlayerAgent : Agent
                 trackedGone = (_trackedShuttle == null);
             }
 
-			if (trackedGone)
-			{
-				// 에피소드 리워드 요약 로그
-				if (logEpisodeRewards) LogEpisodeRewards();
+            if (trackedGone)
+            {
+                // 에피소드 리워드 요약 로그
+                if (logEpisodeRewards) LogEpisodeRewards();
 
-				EndEpisode();
-				// 다음 에피소드를 위해 상태 초기화
-				_trackedShuttle = null;
-				_landedDetected = false;
-				_landedAt = 0f;
-			}
+                EndEpisode();
+                // 다음 에피소드를 위해 상태 초기화
+                _trackedShuttle = null;
+                _landedDetected = false;
+                _landedAt = 0f;
+            }
         }
     }
 
-	void LogEpisodeRewards()
-	{
-		float total = GetCumulativeReward();
-		string swingCounts = string.Format("{0}:{1}, {2}:{3}, {4}:{5}, {6}:{7}, {8}:{9}, {10}:{11}",
-			SwingNames[0], _epSwingExecCounts.Length > 0 ? _epSwingExecCounts[0] : 0,
-			SwingNames[1], _epSwingExecCounts.Length > 1 ? _epSwingExecCounts[1] : 0,
-			SwingNames[2], _epSwingExecCounts.Length > 2 ? _epSwingExecCounts[2] : 0,
-			SwingNames[3], _epSwingExecCounts.Length > 3 ? _epSwingExecCounts[3] : 0,
-			SwingNames[4], _epSwingExecCounts.Length > 4 ? _epSwingExecCounts[4] : 0,
+    void LogEpisodeRewards()
+    {
+        float total = GetCumulativeReward();
+        string swingCounts = string.Format("{0}:{1}, {2}:{3}, {4}:{5}, {6}:{7}, {8}:{9}, {10}:{11}",
+            SwingNames[0], _epSwingExecCounts.Length > 0 ? _epSwingExecCounts[0] : 0,
+            SwingNames[1], _epSwingExecCounts.Length > 1 ? _epSwingExecCounts[1] : 0,
+            SwingNames[2], _epSwingExecCounts.Length > 2 ? _epSwingExecCounts[2] : 0,
+            SwingNames[3], _epSwingExecCounts.Length > 3 ? _epSwingExecCounts[3] : 0,
+            SwingNames[4], _epSwingExecCounts.Length > 4 ? _epSwingExecCounts[4] : 0,
             SwingNames[5], _epSwingExecCounts.Length > 5 ? _epSwingExecCounts[5] : 0
-		);
+        );
 
-		Debug.Log(
-			$"[EpLog] total={total:F3} | time={_epTimePenaltySum:F3}, center={_epCenteringSum:F3}, outCourt={_epOutOfCourtSum:F3}, wrongZone={_epWrongZoneSum:F3} (cnt={_epWrongZoneSelectCount}), swingFit={_epSwingAppropriateSum:F3}, hit={_epHitSum:F3} | swings={{ {swingCounts} }}"
-		);
+        Debug.Log(
+            $"[EpLog] total={total:F3} | time={_epTimePenaltySum:F3}, center={_epCenteringSum:F3}, outCourt={_epOutOfCourtSum:F3}, wrongZone={_epWrongZoneSum:F3} (cnt={_epWrongZoneSelectCount}), swingFit={_epSwingAppropriateSum:F3}, hit={_epHitSum:F3} | swings={{ {swingCounts} }}"
+        );
         float avgGoalDelta = (goalDistSteps > 0 ? goalDistSum / goalDistSteps : 0f);
 
         // 텐서보드 기록

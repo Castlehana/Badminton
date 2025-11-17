@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
@@ -39,6 +39,10 @@ public class RallyManager : MonoBehaviour
 
     public MenuSceneLoader menuSceneLoader;
 
+
+    // ì¸ìŠ¤í™í„°ì—ì„œ Enemy ì˜¤ë¸Œì íŠ¸ë¥¼ ë“œë˜ê·¸í•´ì„œ ë„£ê¸°
+    public GameObject enemyObject;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -54,6 +58,16 @@ public class RallyManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // â˜… Ready ìƒíƒœì¼ ë•Œ Enemy ìœ„ì¹˜ ê³ ì • (x=0, z=-10)
+        if (State == RallyState.Ready && enemyObject != null)
+        {
+            Vector3 pos = enemyObject.transform.position;
+            pos.x = 0f;
+            pos.z = -10f;
+            enemyObject.transform.position = pos;
+        }
+        // Readyê°€ ì•„ë‹ ë•ŒëŠ” ìœ„ì¹˜ë¥¼ ê±´ë“œë¦¬ì§€ ì•Šìœ¼ë¯€ë¡œ "ê³ ì • í’€ë¦¼"
+
         if (State == RallyState.Ended && !isResetting)
         {
             StartCoroutine(ReturnToReady());
@@ -70,7 +84,7 @@ public class RallyManager : MonoBehaviour
 
         yield return new WaitForSeconds(1.0f);
 
-        UnityEngine.Debug.Log("Ai ¼­ºê!!");
+        UnityEngine.Debug.Log("Ai ì„œë¸Œ!!");
 
         GameObject newShuttle = Instantiate(shuttlePrefab, aiServePoint, Quaternion.identity);
         Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
@@ -96,17 +110,17 @@ public class RallyManager : MonoBehaviour
 
     public void PointCheck(bool mySide, bool opponentSide, bool inCourt, bool underNet)
     {
-        // µæÁ¡ ÆÇÁ¤ Ã³¸®
+        // ë“ì  íŒì • ì²˜ë¦¬
         if (underNet)
         {
-            // 1. ³×Æ® ¹Ø Åë°ú + ÇÃ·¹ÀÌ¾î ÄÚÆ® -> ÇÃ·¹ÀÌ¾î µæÁ¡
+            // 1. ë„¤íŠ¸ ë°‘ í†µê³¼ + í”Œë ˆì´ì–´ ì½”íŠ¸ -> í”Œë ˆì´ì–´ ë“ì 
             if (mySide)
             {
                 myScore++;
                 Turn = ServeTurn.MyTurn;
                 UnityEngine.Debug.Log("Player Point");
             }
-            // 2. ³×Æ® ¹Ø Åë°ú + »ó´ë ÄÚÆ® -> »ó´ë µæÁ¡
+            // 2. ë„¤íŠ¸ ë°‘ í†µê³¼ + ìƒëŒ€ ì½”íŠ¸ -> ìƒëŒ€ ë“ì 
             if (opponentSide)
             {
                 aiScore++;
@@ -118,14 +132,14 @@ public class RallyManager : MonoBehaviour
         {
             if (mySide)
             {
-                // 3. ÇÃ·¹ÀÌ¾î ¿µ¿ª + ÀÎÄÚÆ® -> »ó´ë µæÁ¡
+                // 3. í”Œë ˆì´ì–´ ì˜ì—­ + ì¸ì½”íŠ¸ -> ìƒëŒ€ ë“ì 
                 if (inCourt)
                 {
                     aiScore++;
                     Turn = ServeTurn.AiTurn;
                     UnityEngine.Debug.Log("AI Point");
                 }
-                // 4. ÇÃ·¹ÀÌ¾î ¿µ¿ª + ¾Æ¿ôÄÚÆ® -> ÇÃ·¹ÀÌ¾î µæÁ¡
+                // 4. í”Œë ˆì´ì–´ ì˜ì—­ + ì•„ì›ƒì½”íŠ¸ -> í”Œë ˆì´ì–´ ë“ì 
                 else
                 {
                     myScore++;
@@ -135,14 +149,14 @@ public class RallyManager : MonoBehaviour
             }
             else if (opponentSide)
             {
-                // 5. »ó´ë ¿µ¿ª + ÀÎÄÚÆ® -> ÇÃ·¹ÀÌ¾î µæÁ¡
+                // 5. ìƒëŒ€ ì˜ì—­ + ì¸ì½”íŠ¸ -> í”Œë ˆì´ì–´ ë“ì 
                 if (inCourt)
                 {
                     myScore++;
                     Turn = ServeTurn.MyTurn;
                     UnityEngine.Debug.Log("Player Point");
                 }
-                // 6. »ó´ë ¿µ¿ª + ¾Æ¿ôÄÚÆ® -> »ó´ë µæÁ¡
+                // 6. ìƒëŒ€ ì˜ì—­ + ì•„ì›ƒì½”íŠ¸ -> ìƒëŒ€ ë“ì 
                 else
                 {
                     aiScore++;
@@ -158,12 +172,12 @@ public class RallyManager : MonoBehaviour
     {
         if (Mathf.Abs(myScore - aiScore) >= 2 && myScore >= gamePoint)
         {
-            // achv ¼öÁ¤
+            // achv ìˆ˜ì •
             var mgr = SaveManager.Instance;
             if (mgr != null && mgr.Current != null)
             {
                 mgr.Current.achv.totalWins++;
-                // ¿¬½Â °è»ê
+                // ì—°ìŠ¹ ê³„ì‚°
                 mgr.Current.achv.streak++;
                 mgr.Current.achv.highestStreak = Mathf.Max(mgr.Current.achv.highestStreak, mgr.Current.achv.streak);
                 mgr.Save();
@@ -175,7 +189,7 @@ public class RallyManager : MonoBehaviour
         }
         else if (Mathf.Abs(myScore - aiScore) >= 2 && aiScore >= gamePoint)
         {
-            // achv ¼öÁ¤
+            // achv ìˆ˜ì •
             var mgr = SaveManager.Instance;
             if (mgr != null && mgr.Current != null)
             {
@@ -202,9 +216,19 @@ public class RallyManager : MonoBehaviour
         if (opponentText)
             opponentText.text = "Opponent : " + opponent.ToString();
     }
-
     public void ResetPosition()
     {
-        //ÇÃ·¹ÀÌ¾î¿Í AiÀÇ À§Ä¡ ¸®¼Â
+        // ì¸ìŠ¤í™í„°ì—ì„œ í• ë‹¹í•œ Enemy ì˜¤ë¸Œì íŠ¸ì˜ X/Zë§Œ ë¦¬ì…‹
+        if (enemyObject != null)
+        {
+            Vector3 pos = enemyObject.transform.position;
+            pos.x = 0f;
+            pos.z = -10f;
+            enemyObject.transform.position = pos;
+        }
+        else
+        {
+            UnityEngine.Debug.LogWarning("RallyManager: enemyObjectê°€ í• ë‹¹ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
+        }
     }
 }

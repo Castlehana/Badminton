@@ -51,8 +51,8 @@ EMA_ALPHA  = 0.20
 DT_MIN, DT_MAX = 1/90.0, 1/20.0
 
 # 피크 검출 파라미터(정규화 좌표계 기준)
-V_MIN_WRIST     = 1.10
-V_MIN_ELBOW     = 0.80
+V_MIN_WRIST     = 0.65   # 손목 최소 속도 임계값 ↓ (스윙 더 잘 잡히게)
+V_MIN_ELBOW     = 0.40   # 팔꿈치 최소 속도 임계값 ↓
 PROM_MIN        = 0.06
 VIS_THR         = 0.60
 USE_ELBOW_RATIO = 0.5
