@@ -28,6 +28,8 @@ public class Shuttlecock : MonoBehaviour
     private bool lifeTimerStarted = false; // y<=0.7 이후 타이머 시작 여부
     public bool shootingLock = false;      // 발사 잠금 상태
 
+    int lastSign;
+
     // 낙하 지점 영역 판정 용 변수
     private bool alreadyLanded = false;
     private bool mySide = false;
@@ -62,6 +64,9 @@ public class Shuttlecock : MonoBehaviour
 
     void Start()
     {
+
+        lastSign = 0;
+
         rallyManager = FindObjectOfType<RallyManager>();
 
         // 생성 직후에는 삭제 예약을 하지 않음
@@ -106,9 +111,23 @@ public class Shuttlecock : MonoBehaviour
         }
     }
 
+
     public void Launch(float yaw, float pitch, float force)
     {
-        if (shootingLock) return; // 잠금 상태면 실행 안 함
+        //if (shootingLock) return; // 잠금 상태면 실행 안 함
+
+        // 현재 위치의 z 부호 계산
+        int currentSign = transform.position.z >= 0 ? 1 : -1;
+
+        // 이전에 한 번이라도 발사했고, 그때와 같은 쪽이라면 발사 금지
+        if (lastSign != 0 && currentSign == lastSign)
+        {
+            UnityEngine.Debug.Log("더블 슈팅 금지");
+            return;
+        }
+
+        // 여기까지 왔으면 “부호가 처음이거나 바뀐 상황” → 발사 허용
+        lastSign = currentSign;
 
         StartCoroutine(ShootingLockRoutine());
 

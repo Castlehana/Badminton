@@ -11,9 +11,9 @@ import os, sys, json, re
 import numpy as np
 import pandas as pd
 
-PRE_FR  = 16
-POST_FR = 8
-T = PRE_FR + 1 + POST_FR  # 25
+PRE_FR  = 32
+POST_FR = 2
+T = PRE_FR + 1 + POST_FR 
 
 SEARCH_SEC_DEFAULT  = 0.7
 SEARCH_SEC_FALLBACK = 1.5
@@ -254,7 +254,7 @@ def _gen_idle_clips(dfn, t, v_wrist, v_elbow, rec_intervals, n_target, out_dir, 
             'used_joint': 'none',
             'T': int(T),
             'feat_dim': int(X.shape[1]),
-            'peak_pos': 'asymmetric(16|1|8)',
+            'peak_pos': 'asymmetric(32|1|2)',
             'pre': int(PRE_FR),
             'post': int(POST_FR),
             'causal': False,
@@ -347,7 +347,7 @@ def process_pair(lmk_path, evt_csv, out_dir):
             'used_joint': 'elbow' if use_elbow else 'wrist',
             'T': int(T),
             'feat_dim': int(X.shape[1]),
-            'peak_pos': 'asymmetric(16|1|8)',
+            'peak_pos': 'asymmetric(32|1|2)',
             'pre': int(PRE_FR),
             'post': int(POST_FR),
             'causal': False,
@@ -373,7 +373,7 @@ def process_pair(lmk_path, evt_csv, out_dir):
                 'video': base,
                 'T': int(T),
                 'feat_dim': 16,
-                'peak_pos': 'asymmetric(16|1|8)',
+                'peak_pos': 'asymmetric(32|1|2)',
                 'pre': int(PRE_FR),
                 'post': int(POST_FR),
                 'causal': False,

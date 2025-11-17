@@ -13,10 +13,10 @@ CLASSES = ['Clear','Drive','Drop','Under','Hairpin','Idle']
 NUM_CLASSES = len(CLASSES)
 CLS2ID = {c:i for i,c in enumerate(CLASSES)}
 
-TARGET_T = 25
+TARGET_T = 32 + 1 + 2
 FEAT_DIM = 16
-PRE_FR   = 16
-POST_FR  = 8
+PRE_FR   = 32
+POST_FR  = 2
 INPUT_NAME  = 'clips'
 OUTPUT_NAME = 'logits'
 
@@ -246,7 +246,7 @@ def fit(args):
                 'input_name': INPUT_NAME,
                 'output_name': OUTPUT_NAME,
                 'seed': SEED,
-                'peak_pos': 'asymmetric(16|1|8)',
+                'peak_pos': 'asymmetric(16|1|2)',
                 'pre': PRE_FR,
                 'post': POST_FR,
                 'causal': False,

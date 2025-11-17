@@ -1,5 +1,5 @@
 # scripts/pose_infer_onnx.py
-# (CLI Camera Picker + Webcam + 16|Peak|8 Decision + Jump Detector)
+# (CLI Camera Picker + Webcam + Softmax-based Swing Decision + Jump Detector)
 # - 실행하면 먼저 CMD에 "카메라 목록"이 뜹니다.
 #   · 번호 입력: 해당 번호 카메라 선택
 #   · r: 다시 스캔
@@ -7,11 +7,17 @@
 # - 선택 후 실시간 추론(스윙 + 점프 감지) 시작
 # - UDP로 스윙/점프 이벤트 전송
 #
-# 변경사항(16-peak-8 반영, 기존 기능 유지):
-# - 결정 윈도우를 "피크 전 16 + 피크 1 + 피크 후 8" = 총 25프레임으로 고정
-# - 우측정렬 버퍼(T=25)에서 center=T-1-POST(=16)를 피크로 검사(±1 허용)
-# - 최소 속도 임계(V_MIN_WRIST/ELBOW) 및 적응형 임계(ADAPT_R/K) 그대로 유지
-# - Ready/Jump/카메라 선택/UDP 기능 유지
+# 변경사항(softmax 기반 스윙 확정 방식):
+# - 더 이상 "속도 피크(16|peak|8) 검출"로 스윙을 확정하지 않음
+# - 대신 softmax 확률 + 클래스 + 상태 머신으로 스윙 확정:
+#   · cls_name != 'Ready'
+#   · conf ≥ th_up (기본 0.80)
+#   · 직전 프레임은 swing_state == False (스윙 상태 아님)
+#   · 쿨다운(cooldown 초) 경과
+#   → 위 조건 만족 시 스윙 이벤트 1회 발생 후 swing_state=True
+#   · conf ≤ th_down (기본 0.60) 이거나 Ready로 돌아오면 swing_state=False 로 복귀
+# - 이렇게 하면 "한 번 스윙 = 한 번 이벤트"에 더 가깝게 유지하면서
+#   속도 피크 조건 때문에 생기던 미검출을 없앰.
 
 import argparse, time, json, socket, math, sys
 from collections import deque
@@ -31,10 +37,11 @@ def resource_path(relative_path: str) -> str:
     return os.path.join(base_path, relative_path)
 
 # ===================== 상수/기본값 =====================
-PRE      = 16   # 피크 전
-POST     = 8    # 피크 후
-DEF_T    = PRE + 1 + POST   # 25
-DEF_TH   = 0.80
+PRE      = 32   # (이제 피크 검출에는 쓰지 않지만, T=25 고정용으로 유지)
+POST     = 2
+DEF_T    = PRE + 1 + POST   # 21
+DEF_TH   = 0.80             # swing 진입 상한(th_up) 기본값
+DEF_TH_DOWN = 0.60          # swing 종료 하한(th_down) 기본값
 DEF_CD   = 0.80
 UDP_IP   = "127.0.0.1"
 UDP_PORT = 5052
@@ -49,20 +56,6 @@ TARGET_FPS = 30.0
 TARGET_DT  = 1.0 / TARGET_FPS
 EMA_ALPHA  = 0.20
 DT_MIN, DT_MAX = 1/90.0, 1/20.0
-
-# 피크 검출 파라미터(정규화 좌표계 기준)
-V_MIN_WRIST     = 0.65   # 손목 최소 속도 임계값 ↓ (스윙 더 잘 잡히게)
-V_MIN_ELBOW     = 0.40   # 팔꿈치 최소 속도 임계값 ↓
-PROM_MIN        = 0.06
-VIS_THR         = 0.60
-USE_ELBOW_RATIO = 0.5
-
-# 적응형 임계(평균+표준편차)
-ADAPT_R = 12
-ADAPT_K = 1.0
-
-# 센터 피크 허용 오차(±1 프레임 허용)
-PEAK_NEAR = 1
 
 # ===================== 유틸 =====================
 def softmax(logits: np.ndarray) -> np.ndarray:
@@ -273,51 +266,6 @@ class FeatureBuilder:
             feats = feats[:, :self.D]
         return feats, diag
 
-# ===================== 16|peak|8 피크 로직 =====================
-def _adaptive_min(seq, base, R=ADAPT_R, K=ADAPT_K, upto=None):
-    """적응형 임계: mean+K*std, upto 인덱스까지(현재 제외 권장)."""
-    n = len(seq)
-    if n <= 1: return base
-    if upto is None: upto = n-2  # 마지막(현재) 제외
-    upto = max(0, min(upto, n-2))
-    start = max(0, upto - (R - 1))
-    win = np.asarray(seq[start:upto+1], np.float32)
-    if win.size == 0: return base
-    mu = float(np.mean(win)); sd = float(np.std(win))
-    return max(base, mu + K*sd)
-
-def _is_center_peak(seq, center_idx, v_min_base):
-    n = len(seq)
-    if n < 3 or not (0 <= center_idx < n): return False
-    c = center_idx
-    left  = seq[c-1] if c-1 >= 0 else seq[c]
-    right = seq[c+1] if c+1 < n else seq[c]
-    v_min_adapt = _adaptive_min(seq, v_min_base, upto=c)
-    cond_local = (seq[c] > left) and (seq[c] > right)
-    cond_prom  = (seq[c] - max(left, right)) >= PROM_MIN
-    cond_speed = (seq[c] >= v_min_adapt)
-    return cond_local and cond_prom and cond_speed
-
-def decide_peak_center(diag, T, pre=PRE, post=POST, near=PEAK_NEAR):
-    vw = diag['v_w_hist']; ve = diag['v_e_hist']; visw = diag['vis16_hist']
-    if len(vw) < T: return False
-    center = T - 1 - post  # 우측정렬 버퍼에서 'post' 프레임 앞 = 피크 인덱스(16)
-
-    use_elbow = False
-    if len(visw) >= T:
-        win_w = visw[-T:]
-        if sum(1 for v in win_w if v >= VIS_THR) / len(win_w) < USE_ELBOW_RATIO:
-            use_elbow = True
-
-    seq  = ve if use_elbow else vw
-    base = V_MIN_ELBOW if use_elbow else V_MIN_WRIST
-
-    for off in (0, -1, +1) if near >= 1 else (0,):
-        idx = center + off
-        if 0 <= idx < len(seq) and _is_center_peak(seq, idx, base):
-            return True
-    return False
-
 # ===================== 시각화 =====================
 def draw_body_ui(frame, lm, w, h, classes, prob=None, last_detected="None", last_conf=0.0):
     key_map = {16:"R-Wrist",14:"R-Elbow",12:"R-Shoulder",15:"L-Wrist"}
@@ -364,35 +312,17 @@ def main():
     ap.add_argument("--device", type=int, default=-1)
     ap.add_argument("--ip", type=str, default=UDP_IP)
     ap.add_argument("--port", type=int, default=UDP_PORT)
-    ap.add_argument("--th", type=float, default=DEF_TH)
-    ap.add_argument("--cooldown", type=float, default=DEF_CD)
+    # softmax 임계값 (상한/하한)
+    ap.add_argument("--th", type=float, default=DEF_TH, help="스윙 진입 상한 임계값 (softmax ≥ th_up)")
+    ap.add_argument("--th_down", type=float, default=DEF_TH_DOWN, help="스윙 종료 하한 임계값 (softmax ≤ th_down)")
+    ap.add_argument("--cooldown", type=float, default=DEF_CD, help="스윙 이벤트 최소 간격(초)")
     ap.add_argument("--show_landmarks", action="store_true", default=False)
     # 점프 감지
     ap.add_argument("--jump_thr", type=float, default=2.00, help="점프 임계값( -dy/dt >= jump_thr, 단위 1/s )")
     ap.add_argument("--jump_hold", type=float, default=0.50, help="점프 표시 유지 시간(초)")
     ap.add_argument("--jump_send_cooldown", type=float, default=0.30, help="점프 UDP 연속 전송 쿨다운(초)")
     ap.add_argument("--no_picker", action="store_true", help="CMD 카메라 선택 없이 --device 값으로 바로 열기")
-    # 피크 튜닝
-    ap.add_argument("--vmin_wrist", type=float, default=V_MIN_WRIST)
-    ap.add_argument("--vmin_elbow", type=float, default=V_MIN_ELBOW)
-    ap.add_argument("--prom_min", type=float, default=PROM_MIN)
-    ap.add_argument("--vis_thr", type=float, default=VIS_THR)
-    ap.add_argument("--use_elbow_ratio", type=float, default=USE_ELBOW_RATIO)
-    ap.add_argument("--adapt_r", type=int, default=ADAPT_R)
-    ap.add_argument("--adapt_k", type=float, default=ADAPT_K)
     args = ap.parse_args()
-
-    # 전역 값 주입
-    for k, v in {
-        "V_MIN_WRIST": args.vmin_wrist,
-        "V_MIN_ELBOW": args.vmin_elbow,
-        "PROM_MIN": args.prom_min,
-        "VIS_THR": args.vis_thr,
-        "USE_ELBOW_RATIO": args.use_elbow_ratio,
-        "ADAPT_R": args.adapt_r,
-        "ADAPT_K": args.adapt_k,
-    }.items():
-        globals()[k] = v
 
     # 카메라 선택
     if args.no_picker and args.device >= 0:
@@ -410,8 +340,7 @@ def main():
         meta = json.load(f)
     classes = meta["classes"]
     D       = int(meta["feat_dim"])
-    # 강제 16|peak|8: 모델 입력 길이(T)를 25로 맞춘다(훈련도 25라 가정).
-    T       = DEF_T
+    T = int(meta.get("target_T", DEF_T))
     in_name = meta.get("input_name", "clips")
     out_name= meta.get("output_name", "logits")
     mu  = np.asarray(meta["zscore_mu"],  dtype=np.float32)
@@ -455,6 +384,17 @@ def main():
     prev_nose_y       = None
     last_jump_ts      = -1e9
     last_jump_send_ts = -1e9
+
+    # 스윙 상태 머신 (softmax 기반)
+    swing_state = False         # 현재 "스윙 중"인지 여부
+    swing_class = None          # 현재 스윙 클래스
+    th_up   = float(args.th)
+    th_down = float(args.th_down)
+
+    # 안전장치: th_down은 th_up보다 작게
+    if th_down >= th_up:
+        print(f"[WARN] th_down({th_down}) >= th_up({th_up}) 이므로, th_down을 th_up-0.1로 조정합니다.")
+        th_down = max(0.0, th_up - 0.1)
 
     while cap.isOpened():
         ok, frame = cap.read()
@@ -514,26 +454,55 @@ def main():
                 conf = float(p[0, cls_idx])
                 cls_name = classes[cls_idx] if 0 <= cls_idx < len(classes) else str(cls_idx)
 
-                # 16|peak|8: 우측정렬 버퍼 길이 T에서 center=T-1-POST가 피크인지 확인(±1 허용)
-                peak_now = decide_peak_center(diag, T, pre=PRE, post=POST, near=PEAK_NEAR)
-
-                if peak_now:
-                    if cls_name != 'Ready':
-                        if (conf >= args.th) and ((t_now - last_fire_ts) >= args.cooldown):
-                            pkt = {"swing": True, "class": cls_name, "conf": round(conf,4), "ts": round(t_now,3)}
-                            try: sock.sendto(json.dumps(pkt).encode("utf-8"), (args.ip, args.port))
-                            except Exception as e: print(f"[WARN] UDP send failed: {e}", file=sys.stderr)
+                # ======== softmax 기반 스윙 상태 머신 ========
+                if cls_name != 'Ready':
+                    # Ready가 아닌 스윙 클래스
+                    if not swing_state:
+                        # 스윙이 아니었다가 → 스윙 진입을 시도
+                        if (conf >= th_up) and ((t_now - last_fire_ts) >= args.cooldown):
+                            # 새 스윙 확정
+                            pkt = {
+                                "swing": True,
+                                "class": cls_name,
+                                "conf": round(conf,4),
+                                "ts": round(t_now,3)
+                            }
+                            try:
+                                sock.sendto(json.dumps(pkt).encode("utf-8"), (args.ip, args.port))
+                            except Exception as e:
+                                print(f"[WARN] UDP send failed: {e}", file=sys.stderr)
                             last_fire_ts  = t_now
                             last_detected = cls_name
                             last_conf     = conf
+
+                            swing_state = True
+                            swing_class = cls_name
+                    else:
+                        # 이미 스윙 상태인 경우
+                        # - 다른 클래스로 바뀌거나
+                        # - conf가 충분히 떨어지면 스윙 종료
+                        if (cls_name != swing_class) or (conf <= th_down):
+                            swing_state = False
+                            swing_class = None
                 else:
+                    # Ready 클래스인 경우
                     if (ready_idx is not None) and (cls_idx == ready_idx) and (conf >= TH_READY):
                         last_detected = 'Ready'
                         last_conf     = conf
                         if SEND_READY_UDP:
-                            pkt = {"swing": False, "class": "Ready", "conf": round(conf,4), "ts": round(t_now,3)}
-                            try: sock.sendto(json.dumps(pkt).encode("utf-8"), (args.ip, args.port))
-                            except Exception as e: print(f"[WARN] UDP send failed: {e}", file=sys.stderr)
+                            pkt = {
+                                "swing": False,
+                                "class": "Ready",
+                                "conf": round(conf,4),
+                                "ts": round(t_now,3)
+                            }
+                            try:
+                                sock.sendto(json.dumps(pkt).encode("utf-8"), (args.ip, args.port))
+                            except Exception as e:
+                                print(f"[WARN] UDP send failed: {e}", file=sys.stderr)
+                    # Ready가 나오면 스윙 상태는 무조건 초기화
+                    swing_state = False
+                    swing_class = None
 
         # 상태 표시
         cv2.putText(frame, f"Last confirmed: {last_detected} ({last_conf:.2f})", (16,48),
@@ -556,7 +525,7 @@ def main():
             cx = w//2 - tw//2; cy = h - 20
             cv2.putText(frame, text, (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0,0,255), 3)
 
-        cv2.imshow(f"Pose Inference (Webcam, 16|Peak|8, T={DEF_T})", frame)
+        cv2.imshow(f"Pose Inference (Webcam, softmax-based, T={DEF_T})", frame)
         if cv2.waitKey(1) & 0xFF == 27: break
 
     cap.release()
