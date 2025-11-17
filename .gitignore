@@ -17,6 +17,7 @@
 /MP_project/venv/
 /MP_project/dist/
 /MP_project/build/
+/MP_project/clips/
 
 # By default unity supports Blender asset imports, *.blend1 blender files do not need to be commited to version control.
 *.blend1
