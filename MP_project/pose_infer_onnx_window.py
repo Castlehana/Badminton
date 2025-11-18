@@ -1,8 +1,9 @@
 # scripts/pose_infer_onnx_videotest.py
-# (Peak-INCLUDED, causal right-aligned; T comes from tcn_meta.json, typically 33 = 32-before + peak)
-# - 학습/클립 규칙: "피크 직전 32프레임 + 피크 1프레임" → 총 33프레임(우측정렬, causal)
+# (Peak-INCLUDED, asymmetric 16|peak|8; T comes from tcn_meta.json, typically 25 = 16-before + peak + 8-after)
+# - 학습/클립 규칙: "피크 전 16 + 피크 1 + 피크 후 8" → 총 25프레임(센터=피크, 비-causal)
 # - 메타(tcn_meta.json)의 target_T/feat_dim/classes를 읽어 자동 적용
-# - 피크 시점에서 스윙 클래스만 확정(UDP 전송), 비피크 시점엔 Ready/Idle을 참고 상태로 표시만 가능
+# - 윈도우의 중앙(=피크)에서 스윙 클래스를 확정(UDP 전송), 그 외 시점엔 Ready/Idle을 참고 상태로 표시만 가능
+# - 추가: --droidcam 옵션으로 "DroidCam Client" 창 캡처 입력 지원
 
 import argparse, time, json, socket, math, sys, os, glob
 from collections import deque
@@ -11,6 +12,17 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import onnxruntime as ort
+
+# 화면 캡처/윈도우 제어용 (DroidCam 창 캡처용)
+try:
+    from mss import mss
+except ImportError:
+    mss = None
+
+try:
+    import win32gui
+except ImportError:
+    win32gui = None
 
 # ===================== 기본값 =====================
 DEF_TH   = 0.80            # 스윙 확신도 임계 (softmax)
@@ -29,17 +41,20 @@ TARGET_DT  = 1.0 / TARGET_FPS
 EMA_ALPHA  = 0.20
 DT_MIN, DT_MAX = 1/90.0, 1/20.0  # 90~20fps
 
+# ===================== 16|peak|8 윈도우 파라미터 =====================
+# 주의: 실제 T는 메타의 target_T를 따름. 여기 PRE/POST는 트리거 위치 계산용.
+PRE  = 16
+POST = 8
+
 # ===================== 피크 검출 파라미터 =====================
-PEAK_WIN        = 5          # 최근 N프레임 창(우측 끝=현재 프레임)
 V_MIN_WRIST     = 1.10       # 손목 속도 최소(정규화/초)
 V_MIN_ELBOW     = 0.80       # 팔꿈치 속도 최소
 PROM_MIN        = 0.06       # 돌출도(피크 - 인접값)
 VIS_THR         = 0.60       # 가시도 임계
 USE_ELBOW_RATIO = 0.5        # 창 내 손목 가시도 비율이 낮으면 팔꿈치 사용
-
-# ===== 적응형 임계(평균+표준편차) =====
-ADAPT_R = 12      # 최근 12프레임(마지막 제외)로 기준선 계산
-ADAPT_K = 1.0     # 기준선 = max(v_min_base, mean + K * std)
+ADAPT_R         = 12         # 최근 12프레임(피크 프레임 제외)로 평균/표준편차
+ADAPT_K         = 1.0        # 적응형 기준선 = max(v_min_base, mean + K*std)
+PEAK_NEAR       = 1          # center±1 허용
 
 # ===================== 유틸 =====================
 def softmax(logits: np.ndarray) -> np.ndarray:
@@ -109,7 +124,7 @@ class FeatureBuilder:
         H['x15'].append(nlw[0]); H['y15'].append(nlw[1])
         H['vis16'].append(vis16); H['vis14'].append(vis14)
 
-        # 우측정렬: 최신 프레임(=잠재적 피크)이 윈도우의 끝 → len==T가 되면 (T 프레임, PEAK 포함) 반환
+        # 우측정렬 버퍼: len==T가 되면 (T 프레임) 반환
         if len(H['t']) < self.T: return None, None
 
         # 배열화
@@ -133,15 +148,12 @@ class FeatureBuilder:
         theta = np.arctan2(dy, dx).astype(np.float32)
         dtheta = self._grad(theta, t)
 
-        # front: 어깨 기준 → 손목 x가 0 이상이면 전방(오른쪽)
         front = (xw >= 0).astype(np.float32)
 
-        # 거리들
         d_ws = np.hypot(xw - xs, yw - ys).astype(np.float32)   # wrist-shoulder
         d_we = np.hypot(xw - xe, yw - ye).astype(np.float32)   # wrist-elbow
         d_wl = np.hypot(xw - xl, yw - yl).astype(np.float32)   # wrist-left_wrist
 
-        # phi_shoulder 사용하지 않음 → 0, 상대각 = theta
         phi_shoulder = np.zeros_like(theta, dtype=np.float32)
         theta_rel = theta.copy()
 
@@ -159,7 +171,7 @@ class FeatureBuilder:
             dtheta, phi_shoulder, theta_rel, ang_elbow
         ], axis=1).astype(np.float32)
 
-        # 속도/가시도 기록(피크 검사용)
+        # 속도/가시도 기록(피크 검사용, 길이 T로 유지)
         H['v_w'].append(float(v[-1]))
         H['v_e'].append(float(v_e[-1]))
 
@@ -179,48 +191,53 @@ class FeatureBuilder:
 
         return feats, diag
 
-# ===================== 피크 트리거 (적응형 포함) =====================
-def is_recent_peak(seq, v_min_base, prom_min):
-    """최근 값(마지막 프레임)을 피크로 볼지 판단.
-       - 3프레임 국소최대 + 돌출도 + (적응형)최소속도
-    """
+# ===================== (중앙=피크) 트리거 =====================
+def _adaptive_min(seq, base, R=ADAPT_R, K=ADAPT_K, upto=None):
+    """upto: 적응 통계 계산에 포함할 마지막 인덱스(포함). None이면 마지막 전까지 자동."""
     n = len(seq)
-    if n < max(PEAK_WIN, 3):
-        return False
+    end = (n-2) if upto is None else max(0, min(upto-1, n-2))
+    start = max(0, end - (R-1))
+    if end >= start and (end - start + 1) >= 1:
+        win = np.asarray(seq[start:end+1], np.float32)
+        mu = float(np.mean(win)); sd = float(np.std(win))
+        return max(base, mu + K*sd)
+    return base
 
-    c  = float(seq[-1])
-    p1 = float(seq[-2])
-    p2 = float(seq[-3]) if n >= 3 else p1
+def is_center_peak_window(seq, center_idx, v_min_base):
+    """center_idx에서 국소최대+돌출도+최소속도(적응형)을 만족하는지."""
+    n = len(seq)
+    if n < 3 or not (0 <= center_idx < n): return False
+    c = center_idx
+    left  = seq[c-1] if c-1 >= 0 else seq[c]
+    right = seq[c+1] if c+1 < n else seq[c]
+    v_min_adapt = _adaptive_min(seq, v_min_base, upto=c)
+    cond_local = (seq[c] > left) and (seq[c] > right)
+    cond_prom  = (seq[c] - max(left, right)) >= PROM_MIN
+    cond_speed = (seq[c] >= v_min_adapt)
+    return cond_local and cond_prom and cond_speed
 
-    # 적응형 최소속도: mean + K*std (마지막 프레임 제외 구간)
-    if n >= ADAPT_R + 1:
-        win = np.asarray(seq[-(ADAPT_R+1):-1], dtype=np.float32)
-        mu  = float(np.mean(win))
-        sd  = float(np.std(win))
-        v_min_adapt = max(v_min_base, mu + ADAPT_K * sd)
-    else:
-        v_min_adapt = v_min_base
+def decide_peak_center(diag, T):
+    """우측정렬 버퍼 길이 T에서 센터(=T-1-POST)가 피크인지 검사. 가시도 낮으면 팔꿈치로 대체."""
+    vw = diag['v_w_hist']; ve = diag['v_e_hist']; visw = diag['vis16_hist']
+    if len(vw) < T: return False
+    center = T - 1 - POST  # 우측정렬에서 '현재'는 맨 끝(T-1), 피크는 그로부터 POST만큼 과거
 
-    cond_local_max = (c > p1) and (c > p2)
-    cond_prom      = (c - max(p1, p2)) >= prom_min
-    cond_speed     = (c >= v_min_adapt)
-
-    return cond_local_max and cond_prom and cond_speed
-
-def decide_peak(diag):
-    vw = diag['v_w_hist']; ve = diag['v_e_hist']
-    visw = diag['vis16_hist']
-
-    # 손목 가시도 낮으면 팔꿈치로 대체
+    # 손목 가시도 비율 낮으면 팔꿈치 속도로 판단
     use_elbow = False
-    if len(visw) >= PEAK_WIN:
-        win_w = visw[-PEAK_WIN:]
+    if len(visw) >= T:
+        win_w = visw[-T:]
         if sum(1 for v in win_w if v >= VIS_THR) / len(win_w) < USE_ELBOW_RATIO:
             use_elbow = True
 
-    return is_recent_peak(ve if use_elbow else vw,
-                          V_MIN_ELBOW if use_elbow else V_MIN_WRIST,
-                          PROM_MIN)
+    seq = ve if use_elbow else vw
+    base = V_MIN_ELBOW if use_elbow else V_MIN_WRIST
+
+    # center±PEAK_NEAR 허용
+    for off in (0, -1, +1) if PEAK_NEAR >= 1 else (0,):
+        idx = center + off
+        if 0 <= idx < len(seq) and is_center_peak_window(seq, idx, base):
+            return True
+    return False
 
 # ===================== 시각화 =====================
 def draw_body_ui(frame, lm, w, h, classes, prob=None, last_detected="None", last_conf=0.0):
@@ -290,8 +307,14 @@ def main():
     ap.add_argument("--port", type=int, default=UDP_PORT)  # ← type=int
     ap.add_argument("--show_landmarks", action="store_true", default=False)
     ap.add_argument("--no-filepicker", action="store_true", default=False)
+
+    # ---- DroidCam 창 캡처 옵션 ----
+    ap.add_argument("--droidcam", action="store_true",
+                    help="DroidCam Client 창 캡처를 입력으로 사용")
+    ap.add_argument("--droidcam_title", type=str, default="DroidCam Client",
+                    help="DroidCam 창 제목 (기본: 'DroidCam Client')")
+
     # ---- 임계 튜닝 CLI ----
-    ap.add_argument("--peak_win", type=int, default=PEAK_WIN)
     ap.add_argument("--vmin_wrist", type=float, default=V_MIN_WRIST)
     ap.add_argument("--vmin_elbow", type=float, default=V_MIN_ELBOW)
     ap.add_argument("--prom_min", type=float, default=PROM_MIN)
@@ -299,37 +322,65 @@ def main():
     ap.add_argument("--use_elbow_ratio", type=float, default=USE_ELBOW_RATIO)
     ap.add_argument("--adapt_r", type=int, default=ADAPT_R)
     ap.add_argument("--adapt_k", type=float, default=ADAPT_K)
+    ap.add_argument("--pre", type=int, default=PRE)
+    ap.add_argument("--post", type=int, default=POST)
     args = ap.parse_args()
 
-    # 전역 상수 값을 CLI로 주입 (global 없이 안전하게)
-    for k, v in {
-        "PEAK_WIN": args.peak_win,
-        "V_MIN_WRIST": args.vmin_wrist,
-        "V_MIN_ELBOW": args.vmin_elbow,
-        "PROM_MIN": args.prom_min,
-        "VIS_THR": args.vis_thr,
-        "USE_ELBOW_RATIO": args.use_elbow_ratio,
-        "ADAPT_R": args.adapt_r,
-        "ADAPT_K": args.adapt_k,
-    }.items():
-        globals()[k] = v
+    # 전역/파라미터 업데이트
+    globals()["V_MIN_WRIST"]     = args.vmin_wrist
+    globals()["V_MIN_ELBOW"]     = args.vmin_elbow
+    globals()["PROM_MIN"]        = args.prom_min
+    globals()["VIS_THR"]         = args.vis_thr
+    globals()["USE_ELBOW_RATIO"] = args.use_elbow_ratio
+    globals()["ADAPT_R"]         = args.adapt_r
+    globals()["ADAPT_K"]         = args.adapt_k
+    globals()["PRE"]             = args.pre
+    globals()["POST"]            = args.post
 
     # 메타
     with open(args.meta, "r", encoding="utf-8") as f:
         meta = json.load(f)
     classes = meta["classes"]            # 예: ['Clear','Drive','Drop','Under','Hairpin','Idle']
     D       = int(meta["feat_dim"])
-    T       = int(meta.get("target_T", 33))  # 보통 33(32-before + peak)
+    T       = int(meta.get("target_T", PRE + 1 + POST))  # 기본 25
     in_name = meta.get("input_name", "clips")
     out_name= meta.get("output_name", "logits")
     mu  = np.asarray(meta["zscore_mu"],  dtype=np.float32)
     std = np.asarray(meta["zscore_std"], dtype=np.float32)
     std = np.where(np.abs(std) < 1e-8, 1.0, std)  # 0 나눗셈 방지
 
-    # 입력 소스
+    # 입력 소스 선정
+    sct = None
+    monitor = None
     video_path = None
-    if args.webcam:
+    cap = None
+
+    if args.droidcam:
+        # DroidCam 창 캡처 모드
+        if mss is None or win32gui is None:
+            print("[ERROR] --droidcam 사용을 위해서는 'mss'와 'pywin32'가 필요합니다.", file=sys.stderr)
+            print("        pip install mss pywin32", file=sys.stderr)
+            sys.exit(1)
+
+        hwnd = win32gui.FindWindow(None, args.droidcam_title)
+        if not hwnd:
+            print(f"[ERROR] '{args.droidcam_title}' 창을 찾을 수 없습니다.", file=sys.stderr)
+            sys.exit(1)
+
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        width  = right - left
+        height = bottom - top
+        if width <= 0 or height <= 0:
+            print("[ERROR] DroidCam 창 크기가 이상합니다.", file=sys.stderr)
+            sys.exit(1)
+
+        print(f"[INFO] DroidCam window rect: left={left}, top={top}, width={width}, height={height}")
+        sct = mss()
+        monitor = {"top": top, "left": left, "width": width, "height": height}
+
+    elif args.webcam:
         cap = cv2.VideoCapture(0)
+
     else:
         if args.video and os.path.exists(args.video):
             video_path = args.video
@@ -341,8 +392,13 @@ def main():
             print("[ERROR] 사용할 영상이 없습니다.", file=sys.stderr); sys.exit(1)
         cap = cv2.VideoCapture(video_path)
         print(f"[INFO] Using video: {video_path}")
-    if not cap or not cap.isOpened():
-        print("[ERROR] 입력 소스를 열 수 없습니다.", file=sys.stderr); sys.exit(1)
+
+    if args.droidcam:
+        # 화면 캡처 모드는 cap이 없어도 됨
+        pass
+    else:
+        if not cap or not cap.isOpened():
+            print("[ERROR] 입력 소스를 열 수 없습니다.", file=sys.stderr); sys.exit(1)
 
     # ONNX & UDP
     try:
@@ -377,8 +433,21 @@ def main():
     swing_ids = [i for i,c in enumerate(classes) if c not in ('Ready','Idle')]
 
     while True:
-        ok, frame = cap.read()
-        if not ok: break
+        if args.droidcam:
+            sct_img = sct.grab(monitor)                    # BGRA
+            frame = np.array(sct_img, dtype=np.uint8)
+            frame = frame[..., :3].copy()                  # BGRA → BGR, 연속 메모리
+            # 해상도 줄이기 (필요에 따라 조정 가능)
+            frame = cv2.resize(frame, (960, 540))
+            ok = True
+        else:
+            ok, frame = cap.read()
+
+        if not ok:
+            break
+
+        # 아래부터는 기존 처리 그대로 (dt 계산, mediapipe, fb, onnx, UI 등)
+
 
         # dt(실시간)
         t_now = time.perf_counter()
@@ -405,9 +474,9 @@ def main():
             if args.show_landmarks:
                 mp_draw.draw_landmarks(frame, res.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-            # ===== 항상 추론(하이브리드 결정) =====
+            # ===== 추론 + 중앙(피크) 트리거 =====
             if feats is not None and diag is not None:
-                X = feats.astype(np.float32)            # (T,D) — 최신 프레임 포함(=피크 포함 가능)
+                X = feats.astype(np.float32)            # (T,D) — 우측정렬 T창
                 Xn = (X - mu) / (std + EPS)
                 Xn = to_3d_btd(Xn, T, D)               # (1,T,D)
 
@@ -424,8 +493,8 @@ def main():
                 conf = float(p[0, cls_idx])
                 cls_name = classes[cls_idx] if 0 <= cls_idx < len(classes) else str(cls_idx)
 
-                # 피크 판정(최신 프레임 기준; 적응형 포함)
-                peak_now = decide_peak(diag)
+                # 윈도우 중앙(=피크) 판정 (center = T-1-POST, 필요시 ±1 허용)
+                peak_now = decide_peak_center(diag, T)
 
                 if peak_now:
                     # 스윙 시점: Ready/Idle 제외, 스윙 클래스만 확정/UDP
@@ -466,11 +535,19 @@ def main():
         cv2.putText(frame, f"Wrist speed: {last_wrist_speed:.3f} (norm/s)",
                     (16, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,255,255), 2)
 
-        title = f"Pose Inference (Causal 32+Peak, Hybrid Ready/Idle) - {'Webcam' if args.webcam else os.path.basename(video_path) if 'video_path' in locals() and video_path else 'Video'}"
+        if args.droidcam:
+            src_name = "DroidCam"
+        elif args.webcam:
+            src_name = "Webcam"
+        else:
+            src_name = os.path.basename(video_path) if video_path else "Video"
+
+        title = f"Pose Inference (16|Peak|8, Center-Trigger) - {src_name}"
         cv2.imshow(title, frame)
         if cv2.waitKey(1) & 0xFF == 27: break
 
-    cap.release()
+    if cap is not None:
+        cap.release()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":

@@ -74,5 +74,101 @@ def main():
     if video_lovo:
         print(f"[OK] video_lovo: {len(video_lovo)} folds")
 
+    
+    # ============================================
+    # 2) clips → train/val/test .npz 생성
+    # ============================================
+    import numpy as np
+
+    # --- clip npz 로더 (너의 구조에 정확히 맞춘 버전) ---
+    def load_clip_npz(path):
+        data = np.load(path, allow_pickle=True)
+
+        # 너의 clip 구조는 ['X', 'y', 'meta']
+        # X: (T, D),  y: scalar, meta: scalar
+        if 'X' not in data or 'y' not in data:
+            raise KeyError(f"Unsupported clip format {path}, keys={data.files}")
+
+        x = data['X']              # (T, D)
+        y = int(data['y'])         # numpy scalar → int 변환
+        return x, y
+
+
+    # --- split 리스트에 따라 clip들을 하나로 모아주는 함수 ---
+    def collect_clips(video_list):
+        xs, ys = [], []
+
+        target_T = None   # 기준 시퀀스 길이(T)
+        feat_dim = None   # 기준 피처 차원(D)
+
+        for video in video_list:
+            # 예: S001_side → S001_side_*.npz
+            pattern = f"dataset/clips/raw/class=*/{video}_*.npz"
+            for path in glob.glob(pattern):
+                x, y = load_clip_npz(path)    # x: (T,D)
+                x = x.astype(np.float32)
+
+                if x.ndim != 2:
+                    # 혹시 모양이 이상한 경우 방어
+                    print(f"[WARN] invalid clip shape {x.shape} in {path}, skip")
+                    continue
+
+                T, D = x.shape
+
+                # 첫 샘플에서 기준 T, D를 잡는다
+                if target_T is None:
+                    target_T = T
+                    feat_dim = D
+                    print(f"[INFO] collect_clips: base shape set to T={target_T}, D={feat_dim}")
+
+                # ---- 시간 길이(T) 보정 ----
+                if T < target_T:
+                    pad = np.zeros((target_T - T, D), dtype=np.float32)
+                    x = np.concatenate([x, pad], axis=0)
+                elif T > target_T:
+                    x = x[:target_T, :]
+
+                # ---- 피처 차원(D) 보정 ----
+                if x.shape[1] < feat_dim:
+                    pad = np.zeros((target_T, feat_dim - x.shape[1]), dtype=np.float32)
+                    x = np.concatenate([x, pad], axis=1)
+                elif x.shape[1] > feat_dim:
+                    x = x[:, :feat_dim]
+
+                xs.append(x)
+                ys.append(y)
+
+        if len(xs) == 0:
+            return None, None
+
+        xs = np.stack(xs)                     # (N, target_T, feat_dim)
+        ys = np.array(ys, dtype=np.int64)     # (N,)
+        return xs, ys
+
+
+
+    # === video_fixed 기반 train/val/test 데이터 생성 ===
+    tr_list = video_fixed['train']
+    va_list = video_fixed['val']
+    te_list = video_fixed['test']
+
+    train_x, train_y = collect_clips(tr_list)
+    val_x,   val_y   = collect_clips(va_list)
+    test_x,  test_y  = collect_clips(te_list)
+
+    # === npz 저장 ===
+    if train_x is not None:
+        np.savez("dataset/train.npz", x=train_x, y=train_y)
+        print("[OK] train.npz saved:", train_x.shape)
+
+    if val_x is not None:
+        np.savez("dataset/val.npz", x=val_x, y=val_y)
+        print("[OK] val.npz saved:", val_x.shape)
+
+    if test_x is not None:
+        np.savez("dataset/test.npz", x=test_x, y=test_y)
+        print("[OK] test.npz saved:", test_x.shape)
+
+
 if __name__ == "__main__":
     main()
