@@ -18,7 +18,11 @@ python pose_infer_onnx.py
 
 python pose_infer_onnx_videotest.py
 
-python pose_infer_onnx_window.py
+python pose_infer_onnx_window.py --droidcam
+
+
+python scripts/run_all_pipeline.py
+
 
 cd C:\Users\tjddn\Documents\GitHub\Badminton\MP_project
 venv\Scripts\activate

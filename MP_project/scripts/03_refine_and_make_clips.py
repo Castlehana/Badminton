@@ -435,6 +435,9 @@ def main():
         print('Usage: python scripts/03_refine_and_make_clips.py <landmarks.parquet> <events.csv> <out_dir>')
         sys.exit(1)
     lmk_path, evt_csv, out_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+
+    
+    
     os.makedirs(out_dir, exist_ok=True)
     process_pair(lmk_path, evt_csv, out_dir)
     print('done:', out_dir)

@@ -37,7 +37,7 @@ def resource_path(relative_path: str) -> str:
 # ===================== 설정 상수 =====================
 DEF_T    = 33
 DEF_TH   = 0.80
-DEF_CD   = 0.80
+DEF_CD   = 0.0
 UDP_IP   = "127.0.0.1"
 UDP_PORT = 5052
 EPS      = 1e-6
@@ -58,8 +58,8 @@ VIS_THR         = 0.60
 USE_ELBOW_RATIO = 0.5
 
 # 최적화 관련 기본값
-CAP_WIDTH_DEFAULT   = 320
-CAP_HEIGHT_DEFAULT  = 180
+CAP_WIDTH_DEFAULT   = 1280
+CAP_HEIGHT_DEFAULT  = 720
 POSE_DOWNSCALE_DEF  = 0.5   # Pose 입력 이미지 다운샘플 비율
 INFER_STRIDE_DEF    = 2     # ONNX 추론을 N프레임마다 수행
 TRAIL_MAXLEN        = 15    # 관절 궤적 trail 길이
@@ -501,6 +501,9 @@ def main():
     last_prob = None
     last_wrist_speed = 0.0
 
+    # ★ 최근 스윙 5개 저장용 큐
+    swing_queue = deque(maxlen=5)
+
     t_prev = time.perf_counter()
     dt_ema = TARGET_DT
 
@@ -607,7 +610,7 @@ def main():
                     peak_now = decide_peak(diag)
 
                     if peak_now:
-                        if cls_name != "Ready":
+                        if cls_name != "Idle":
                             if conf >= args.th and (t_now - last_fire_ts) >= args.cooldown:
                                 pkt = {
                                     "swing": True,
@@ -623,6 +626,9 @@ def main():
                                 last_fire_ts = t_now
                                 last_detected = cls_name
                                 last_conf = conf
+
+                                # ★ 스윙 확정 시 큐에 추가
+                                swing_queue.append((cls_name, conf, round(t_now, 2)))
                     else:
                         if (ready_idx is not None and
                             cls_idx == ready_idx and
@@ -641,6 +647,22 @@ def main():
         fps = 1 / (now - fps_prev) if now != fps_prev else 0.0
         fps_prev = now
         fps_vis = fps
+
+        cv2.putText(frame,
+                    f"Wrist speed: {last_wrist_speed:.3f}",
+                    (16, 110),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
+
+        # ★ 최근 스윙 큐 (왼쪽 위, 빨간 글씨)
+        base_x, base_y = w-360, 150
+        line_h = 24
+        for i, (cname, cconf, cts) in enumerate(swing_queue):
+            txt = f"[{i+1}] {cname} ({cconf:.2f}) t={cts}"
+            cv2.putText(frame, txt,
+                        (base_x, base_y + i * line_h),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                        (0, 0, 255), 2)
+
 
         cv2.putText(frame, f"FPS: {fps_vis:.1f}",
                     (16, 80),

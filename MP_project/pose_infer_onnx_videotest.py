@@ -362,9 +362,12 @@ def main():
     mp_draw = mp.solutions.drawing_utils
 
     fb = FeatureBuilder(T=T, D=D)
+
     last_fire_ts = 0.0
     last_detected, last_conf, last_prob = "None", 0.0, None
     last_wrist_speed = 0.0  # 현재 손목 속도(정규화/초)
+
+    swing_queue = deque(maxlen=5)
 
     # 시간/표시
     t_prev = time.perf_counter(); dt_ema = 1.0 / TARGET_FPS
@@ -443,6 +446,9 @@ def main():
                                 print(f"[WARN] UDP send failed: {e}", file=sys.stderr)
                             last_fire_ts = now
                             last_detected, last_conf = cls_name, conf
+
+                            # ★★★ 스윙 큐에 push ★★★
+                            swing_queue.append((cls_name, conf, round(now, 2)))
                 else:
                     # 비피크 시점: Ready/Idle만 확정 후보
                     if ready_like_idx is not None and cls_idx == ready_like_idx and conf >= TH_READY:
@@ -458,6 +464,14 @@ def main():
         # 오버레이 (상태)
         cv2.putText(frame, f"Last: {last_detected} ({last_conf:.2f})",
                     (16,48), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,220,255), 2)
+
+        # ★★★ 최근 스윙 큐 표시 (좌상단 빨간 글씨) ★★★
+        base_x, base_y = w - 360, 150
+        for i, (cname, cconf, cts) in enumerate(swing_queue):
+            text = f"[{i+1}] {cname} ({cconf:.2f})  t={cts}"
+            cv2.putText(frame, text, (base_x, base_y + i*24),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
+
 
         # FPS
         now_wall = time.perf_counter()
