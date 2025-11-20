@@ -36,7 +36,7 @@ def resource_path(relative_path: str) -> str:
 
 # ===================== 설정 상수 =====================
 DEF_T    = 33
-DEF_TH   = 0.80
+DEF_TH   = 0.60
 DEF_CD   = 0.0
 UDP_IP   = "127.0.0.1"
 UDP_PORT = 5052
@@ -51,8 +51,8 @@ EMA_ALPHA  = 0.20
 DT_MIN, DT_MAX = 1/90.0, 1/20.0
 
 PEAK_WIN        = 5
-V_MIN_WRIST     = 0.80
-V_MIN_ELBOW     = 0.50
+V_MIN_WRIST     = 0.20
+V_MIN_ELBOW     = 0.20
 PROM_MIN        = 0.05
 VIS_THR         = 0.60
 USE_ELBOW_RATIO = 0.5
@@ -415,7 +415,7 @@ def main():
     ap.add_argument("--show_landmarks", action="store_true")
 
     # 점프 관련
-    ap.add_argument("--jump_thr", type=float, default=2.0)
+    ap.add_argument("--jump_thr", type=float, default=0.65)
     ap.add_argument("--jump_hold", type=float, default=0.5)
     ap.add_argument("--jump_send_cooldown", type=float, default=0.3)
 
@@ -524,6 +524,8 @@ def main():
     last_jump_ts = -1e9
     last_jump_send_ts = -1e9
 
+    
+    
     while cap.isOpened():
         ok, frame = cap.read()
         if not ok or frame is None:

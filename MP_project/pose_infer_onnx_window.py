@@ -4,6 +4,7 @@
 # - 메타(tcn_meta.json)의 target_T/feat_dim/classes를 읽어 자동 적용
 # - 윈도우의 중앙(=피크)에서 스윙 클래스를 확정(UDP 전송), 그 외 시점엔 Ready/Idle을 참고 상태로 표시만 가능
 # - 추가: --droidcam 옵션으로 "DroidCam Client" 창 캡처 입력 지원
+# - 추가: 코일 점프 감지 + UDP 전송 + 화면 하단 "JUMP!" 오버레이
 
 import argparse, time, json, socket, math, sys, os, glob
 from collections import deque
@@ -47,8 +48,8 @@ PRE  = 16
 POST = 8
 
 # ===================== 피크 검출 파라미터 =====================
-V_MIN_WRIST     = 1.10       # 손목 속도 최소(정규화/초)
-V_MIN_ELBOW     = 0.80       # 팔꿈치 속도 최소
+V_MIN_WRIST     = 0.20       # 손목 속도 최소(정규화/초)
+V_MIN_ELBOW     = 0.20       # 팔꿈치 속도 최소
 PROM_MIN        = 0.06       # 돌출도(피크 - 인접값)
 VIS_THR         = 0.60       # 가시도 임계
 USE_ELBOW_RATIO = 0.5        # 창 내 손목 가시도 비율이 낮으면 팔꿈치 사용
@@ -324,6 +325,15 @@ def main():
     ap.add_argument("--adapt_k", type=float, default=ADAPT_K)
     ap.add_argument("--pre", type=int, default=PRE)
     ap.add_argument("--post", type=int, default=POST)
+
+    # ---- 점프 관련 옵션 (웹캠용) ----
+    ap.add_argument("--jump_thr", type=float, default=0.65,
+                    help="점프 판정 임계 (코 Y속도, 음수 방향)")
+    ap.add_argument("--jump_hold", type=float, default=0.5,
+                    help="JUMP! 텍스트 유지 시간(초)")
+    ap.add_argument("--jump_send_cooldown", type=float, default=0.3,
+                    help="점프 UDP 전송 쿨다운(초)")
+
     args = ap.parse_args()
 
     # 전역/파라미터 업데이트
@@ -384,7 +394,7 @@ def main():
     else:
         if args.video and os.path.exists(args.video):
             video_path = args.video
-        elif not args.no_filepicker:
+        elif not args.no-filepicker:
             video_path = pick_file_dialog(initial_dir=args.video_dir) or auto_pick_from_dir(args.video_dir, args.video_index)
         else:
             video_path = auto_pick_from_dir(args.video_dir, args.video_index)
@@ -432,6 +442,11 @@ def main():
     # 스윙 클래스(Ready/Idle 제외)
     swing_ids = [i for i,c in enumerate(classes) if c not in ('Ready','Idle')]
 
+    # 점프 검사용 상태 변수
+    prev_nose_y = None
+    last_jump_ts = -1e9
+    last_jump_send_ts = -1e9
+
     while True:
         if args.droidcam:
             sct_img = sct.grab(monitor)                    # BGRA
@@ -446,9 +461,6 @@ def main():
         if not ok:
             break
 
-        # 아래부터는 기존 처리 그대로 (dt 계산, mediapipe, fb, onnx, UI 등)
-
-
         # dt(실시간)
         t_now = time.perf_counter()
         dt_raw = t_now - t_prev; t_prev = t_now
@@ -462,6 +474,30 @@ def main():
 
         if res.pose_landmarks:
             lm = res.pose_landmarks.landmark
+
+            # ===== 점프 감지 (코 Y좌표 기반) =====
+            nose_y = float(lm[0].y)
+            if prev_nose_y is not None:
+                dy = nose_y - prev_nose_y
+                if dt_ema > 0:
+                    dydt = dy / dt_ema
+                    # 위로 튀어오르면 nose_y가 빨리 줄어들므로 dydt가 음수 → -dydt가 양수로 큼
+                    if (-dydt) >= args.jump_thr:
+                        last_jump_ts = t_now
+                        if (t_now - last_jump_send_ts) >= args.jump_send_cooldown:
+                            pkt = {
+                                "jump": True,
+                                "speed": round(-dydt, 4),
+                                "ts": round(t_now, 3)
+                            }
+                            try:
+                                sock.sendto(json.dumps(pkt).encode("utf-8"), (args.ip, args.port))
+                            except Exception as e:
+                                print(f"[WARN] UDP send failed (jump): {e}", file=sys.stderr)
+                            last_jump_send_ts = t_now
+            prev_nose_y = nose_y
+
+            # ===== 특징 생성 / 스윙 쪽 =====
             feats, diag = fb.push_and_get(lm, dt=dt_for_model)
 
             # 최신 손목 속도 업데이트(가능할 때만)
@@ -499,22 +535,32 @@ def main():
                 if peak_now:
                     # 스윙 시점: Ready/Idle 제외, 스윙 클래스만 확정/UDP
                     if cls_idx in swing_ids and conf >= args.th:
-                        now = time.perf_counter()
-                        if (now - last_fire_ts) >= args.cooldown:
-                            pkt = {"swing": True, "class": cls_name, "conf": round(conf,4), "ts": round(now,3)}
+                        now_fire = time.perf_counter()
+                        if (now_fire - last_fire_ts) >= args.cooldown:
+                            pkt = {
+                                "swing": True,
+                                "class": cls_name,
+                                "conf": round(conf,4),
+                                "ts": round(now_fire,3)
+                            }
                             try:
                                 sock.sendto(json.dumps(pkt).encode("utf-8"), (args.ip, args.port))
                             except Exception as e:
                                 print(f"[WARN] UDP send failed: {e}", file=sys.stderr)
-                            last_fire_ts = now
+                            last_fire_ts = now_fire
                             last_detected, last_conf = cls_name, conf
                 else:
                     # 비피크 시점: Ready/Idle만 확정 후보
                     if ready_like_idx is not None and cls_idx == ready_like_idx and conf >= TH_READY:
                         last_detected, last_conf = ready_like_name, conf
                         if SEND_READY_UDP:
-                            now = time.perf_counter()
-                            pkt = {"swing": False, "class": ready_like_name, "conf": round(conf,4), "ts": round(now,3)}
+                            now_r = time.perf_counter()
+                            pkt = {
+                                "swing": False,
+                                "class": ready_like_name,
+                                "conf": round(conf,4),
+                                "ts": round(now_r,3)
+                            }
                             try:
                                 sock.sendto(json.dumps(pkt).encode("utf-8"), (args.ip, args.port))
                             except Exception as e:
@@ -529,11 +575,21 @@ def main():
         fps_dt = now_wall - fps_prev_wall
         if fps_dt > 0: fps_vis = 1.0 / fps_dt
         fps_prev_wall = now_wall
-        cv2.putText(frame, f"FPS: {fps_vis:.1f}", (16, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
+        cv2.putText(frame, f"FPS: {fps_vis:.1f}",
+                    (16, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
 
         # 현재 손목 속도(정규화/초) 표시 — FPS 아래 줄
         cv2.putText(frame, f"Wrist speed: {last_wrist_speed:.3f} (norm/s)",
                     (16, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,255,255), 2)
+
+        # ===== 점프 텍스트 오버레이 =====
+        if (time.perf_counter() - last_jump_ts) <= args.jump_hold:
+            text = "JUMP!"
+            (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.2, 3)
+            cx = w // 2 - tw // 2
+            cy = h - 20
+            cv2.putText(frame, text, (cx, cy),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
 
         if args.droidcam:
             src_name = "DroidCam"

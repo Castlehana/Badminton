@@ -15,7 +15,7 @@ import pandas as pd
 # =========================
 
 BEFORE = 16   # 피크 이전 사용 프레임 수
-AFTER  = 8    # 피크 이후 사용 프레임 수
+AFTER  = 6    # 피크 이후 사용 프레임 수
 T = BEFORE + 1 + AFTER
 
 SEARCH_SEC_DEFAULT = 0.7

@@ -221,7 +221,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7209983720425535575, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 11.25
+      value: 22.65
       objectReference: {fileID: 0}
     - target: {fileID: 7209983720425535575, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2765,14 +2765,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 894253581}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d6ae3319f1384354e920bda0fd41251a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   minTimeScale: 0.01
   maxTimeScale: 10
-  initialTimeScale: 1
+  initialTimeScale: 0.75
   applyOnStart: 1
   showOnGUISlider: 1
   enableHotkeys: 1
@@ -2866,7 +2866,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 204c815246522694dae33587b748135b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  player: {fileID: 0}
+  player: {fileID: 1969479033}
   shuttlecockTag: Shuttlecock
   courtHalfWidthX: 11
   courtHalfLengthZ: 20
@@ -5339,6 +5339,11 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 28
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &1969479033 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7209983720425535575, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+  m_PrefabInstance: {fileID: 102621472}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1990213499
 PrefabInstance:
   m_ObjectHideFlags: 0
