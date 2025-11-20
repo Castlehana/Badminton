@@ -45,7 +45,7 @@ EPS      = 1e-6
 TH_READY        = 0.60
 SEND_READY_UDP  = False  # 현재는 사용 안 함
 
-TARGET_FPS = 30.0
+TARGET_FPS = 60.0
 TARGET_DT  = 1.0 / TARGET_FPS
 EMA_ALPHA  = 0.20
 DT_MIN, DT_MAX = 1/90.0, 1/20.0

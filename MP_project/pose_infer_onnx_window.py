@@ -4,7 +4,8 @@
 # - 메타(tcn_meta.json)의 target_T/feat_dim/classes를 읽어 자동 적용
 # - 윈도우의 중앙(=피크)에서 스윙 클래스를 확정(UDP 전송), 그 외 시점엔 Ready/Idle을 참고 상태로 표시만 가능
 # - 추가: --droidcam 옵션으로 "DroidCam Client" 창 캡처 입력 지원
-# - 추가: 코일 점프 감지 + UDP 전송 + 화면 하단 "JUMP!" 오버레이
+# - 추가: 점프 감지 + UDP 전송 + 화면 하단 "JUMP!" 오버레이
+# - 추가: 최근 스윙 5개를 우상단에 빨간색 큐로 표시
 
 import argparse, time, json, socket, math, sys, os, glob
 from collections import deque
@@ -26,8 +27,8 @@ except ImportError:
     win32gui = None
 
 # ===================== 기본값 =====================
-DEF_TH   = 0.80            # 스윙 확신도 임계 (softmax)
-DEF_CD   = 0.80            # 스윙 쿨다운(초)
+DEF_TH   = 0.20            # 스윙 확신도 임계 (softmax)
+DEF_CD   = 0.20            # 스윙 쿨다운(초)
 UDP_IP   = "127.0.0.1"
 UDP_PORT = 5052
 EPS      = 1e-6
@@ -326,8 +327,8 @@ def main():
     ap.add_argument("--pre", type=int, default=PRE)
     ap.add_argument("--post", type=int, default=POST)
 
-    # ---- 점프 관련 옵션 (웹캠용) ----
-    ap.add_argument("--jump_thr", type=float, default=0.65,
+    # ---- 점프 관련 옵션 ----
+    ap.add_argument("--jump_thr", type=float, default=0.75,
                     help="점프 판정 임계 (코 Y속도, 음수 방향)")
     ap.add_argument("--jump_hold", type=float, default=0.5,
                     help="JUMP! 텍스트 유지 시간(초)")
@@ -394,7 +395,7 @@ def main():
     else:
         if args.video and os.path.exists(args.video):
             video_path = args.video
-        elif not args.no-filepicker:
+        elif not args.no_filepicker:
             video_path = pick_file_dialog(initial_dir=args.video_dir) or auto_pick_from_dir(args.video_dir, args.video_index)
         else:
             video_path = auto_pick_from_dir(args.video_dir, args.video_index)
@@ -441,6 +442,9 @@ def main():
 
     # 스윙 클래스(Ready/Idle 제외)
     swing_ids = [i for i,c in enumerate(classes) if c not in ('Ready','Idle')]
+
+    # ★ 최근 스윙 5개 저장용 큐
+    swing_queue = deque(maxlen=5)
 
     # 점프 검사용 상태 변수
     prev_nose_y = None
@@ -549,6 +553,9 @@ def main():
                                 print(f"[WARN] UDP send failed: {e}", file=sys.stderr)
                             last_fire_ts = now_fire
                             last_detected, last_conf = cls_name, conf
+
+                            # ★ 스윙 확정 시 큐에 추가
+                            swing_queue.append((cls_name, conf, round(now_fire, 2)))
                 else:
                     # 비피크 시점: Ready/Idle만 확정 후보
                     if ready_like_idx is not None and cls_idx == ready_like_idx and conf >= TH_READY:
@@ -581,6 +588,16 @@ def main():
         # 현재 손목 속도(정규화/초) 표시 — FPS 아래 줄
         cv2.putText(frame, f"Wrist speed: {last_wrist_speed:.3f} (norm/s)",
                     (16, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,255,255), 2)
+
+        # ★ 최근 스윙 큐 (우상단, 빨간 글씨)
+        base_x, base_y = w - 360, 150
+        line_h = 24
+        for i, (cname, cconf, cts) in enumerate(swing_queue):
+            txt = f"[{i+1}] {cname} ({cconf:.2f}) t={cts}"
+            cv2.putText(frame, txt,
+                        (base_x, base_y + i * line_h),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                        (0, 0, 255), 2)
 
         # ===== 점프 텍스트 오버레이 =====
         if (time.perf_counter() - last_jump_ts) <= args.jump_hold:
