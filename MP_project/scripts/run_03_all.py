@@ -9,6 +9,13 @@ OUT_DIR  = "dataset/clips/raw"
 SCRIPT   = "scripts/03_refine_and_make_clips.py"
 
 def main():
+
+
+    import shutil
+    if os.path.isdir(OUT_DIR):
+        print(f"[run_03_all] Removing old directory: {OUT_DIR}")
+        shutil.rmtree(OUT_DIR)
+
     os.makedirs(OUT_DIR, exist_ok=True)
 
     lands = sorted(glob.glob(os.path.join(LAND_DIR, "*.parquet")))
