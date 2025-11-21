@@ -738,6 +738,14 @@ PrefabInstance:
       propertyPath: m_BrainParameters.m_ActionSpec.BranchSizes.Array.data[0]
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 2698427484246447092, guid: 874c923c73424a14b94b9f5f21d6d3ae, type: 3}
+      propertyPath: DecisionPeriod
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 2698427484246447102, guid: 874c923c73424a14b94b9f5f21d6d3ae, type: 3}
+      propertyPath: moveSpeed
+      value: 15
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2698427484246447093, guid: 874c923c73424a14b94b9f5f21d6d3ae, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 874c923c73424a14b94b9f5f21d6d3ae, type: 3}

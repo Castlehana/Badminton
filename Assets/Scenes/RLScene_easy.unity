@@ -879,6 +879,7 @@ MonoBehaviour:
   playerText: {fileID: 0}
   opponentText: {fileID: 0}
   menuSceneLoader: {fileID: 0}
+  enemyObject: {fileID: 0}
 --- !u!4 &643504361
 Transform:
   m_ObjectHideFlags: 0
@@ -1768,7 +1769,7 @@ MonoBehaviour:
   maxPitch: 60
   minForce: 15
   maxForce: 50
-  rallyManager: {fileID: 0}
+  rallyManager: {fileID: 643504360}
 --- !u!4 &1852184242
 Transform:
   m_ObjectHideFlags: 0
