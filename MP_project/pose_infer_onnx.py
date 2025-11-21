@@ -35,8 +35,8 @@ def resource_path(relative_path: str) -> str:
 
 
 # ===================== 설정 상수 =====================
-DEF_T    = 33
-DEF_TH   = 0.60
+DEF_T    = 16 + 1 + 4
+DEF_TH   = 0.6 #SoftMax 임계값
 DEF_CD   = 0.0
 UDP_IP   = "127.0.0.1"
 UDP_PORT = 5052
@@ -45,23 +45,23 @@ EPS      = 1e-6
 TH_READY        = 0.60
 SEND_READY_UDP  = False  # 현재는 사용 안 함
 
-TARGET_FPS = 60.0
+TARGET_FPS = 30.0
 TARGET_DT  = 1.0 / TARGET_FPS
 EMA_ALPHA  = 0.20
 DT_MIN, DT_MAX = 1/90.0, 1/20.0
 
 PEAK_WIN        = 5
-V_MIN_WRIST     = 0.20
-V_MIN_ELBOW     = 0.20
+V_MIN_WRIST     = 0.50
+V_MIN_ELBOW     = 0.00
 PROM_MIN        = 0.05
 VIS_THR         = 0.60
 USE_ELBOW_RATIO = 0.5
 
 # 최적화 관련 기본값
-CAP_WIDTH_DEFAULT   = 1280
-CAP_HEIGHT_DEFAULT  = 720
+CAP_WIDTH_DEFAULT   = 960
+CAP_HEIGHT_DEFAULT  = 540
 POSE_DOWNSCALE_DEF  = 0.5   # Pose 입력 이미지 다운샘플 비율
-INFER_STRIDE_DEF    = 2     # ONNX 추론을 N프레임마다 수행
+INFER_STRIDE_DEF    = 1     # ONNX 추론을 N프레임마다 수행
 TRAIL_MAXLEN        = 15    # 관절 궤적 trail 길이
 
 
@@ -415,7 +415,7 @@ def main():
     ap.add_argument("--show_landmarks", action="store_true")
 
     # 점프 관련
-    ap.add_argument("--jump_thr", type=float, default=0.65)
+    ap.add_argument("--jump_thr", type=float, default=0.4)
     ap.add_argument("--jump_hold", type=float, default=0.5)
     ap.add_argument("--jump_send_cooldown", type=float, default=0.3)
 
@@ -523,7 +523,7 @@ def main():
     prev_nose_y = None
     last_jump_ts = -1e9
     last_jump_send_ts = -1e9
-
+    jump_ref_buffer = deque(maxlen=30)  # 코-어깨 baseline h 저장용
     
     
     while cap.isOpened():
@@ -654,7 +654,7 @@ def main():
                     f"Wrist speed: {last_wrist_speed:.3f}",
                     (16, 110),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
-
+        """
         # ★ 최근 스윙 큐 (왼쪽 위, 빨간 글씨)
         base_x, base_y = w-360, 150
         line_h = 24
@@ -664,7 +664,7 @@ def main():
                         (base_x, base_y + i * line_h),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                         (0, 0, 255), 2)
-
+        """
 
         cv2.putText(frame, f"FPS: {fps_vis:.1f}",
                     (16, 80),
