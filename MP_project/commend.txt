@@ -37,3 +37,14 @@ pyinstaller ^
   --add-data "tcn_meta.json;." ^
   --add-data "C:\Users\tjddn\venv\Lib\site-packages\mediapipe\modules;mediapipe\modules" ^
   pose_infer_onnx.py
+
+pip install pyinstaller opencv-python mediapipe onnxruntime numpy
+
+python -m PyInstaller ^
+  --onefile ^
+  --name pose_infer_onnx ^
+  --add-data "tcn.onnx;." ^
+  --add-data "tcn_meta.json;." ^
+  --add-data "C:\Users\tjddn\venv\Lib\site-packages\mediapipe\modules;mediapipe\modules" ^
+  pose_infer_onnx.py
+

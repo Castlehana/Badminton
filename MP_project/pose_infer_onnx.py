@@ -35,7 +35,7 @@ def resource_path(relative_path: str) -> str:
 
 
 # ===================== 설정 상수 =====================
-DEF_T    = 16 + 1 + 4
+#DEF_T    = 16 + 1 + 4
 DEF_TH   = 0.6 #SoftMax 임계값
 DEF_CD   = 0.0
 UDP_IP   = "127.0.0.1"
@@ -58,8 +58,8 @@ VIS_THR         = 0.60
 USE_ELBOW_RATIO = 0.5
 
 # 최적화 관련 기본값
-CAP_WIDTH_DEFAULT   = 960
-CAP_HEIGHT_DEFAULT  = 540
+CAP_WIDTH_DEFAULT   = 1280
+CAP_HEIGHT_DEFAULT  = 720
 POSE_DOWNSCALE_DEF  = 0.5   # Pose 입력 이미지 다운샘플 비율
 INFER_STRIDE_DEF    = 1     # ONNX 추론을 N프레임마다 수행
 TRAIL_MAXLEN        = 15    # 관절 궤적 trail 길이
@@ -415,7 +415,7 @@ def main():
     ap.add_argument("--show_landmarks", action="store_true")
 
     # 점프 관련
-    ap.add_argument("--jump_thr", type=float, default=0.4)
+    ap.add_argument("--jump_thr", type=float, default=0.6)
     ap.add_argument("--jump_hold", type=float, default=0.5)
     ap.add_argument("--jump_send_cooldown", type=float, default=0.3)
 
@@ -454,13 +454,24 @@ def main():
 
     classes = meta["classes"]
     D = int(meta["feat_dim"])
-    T = int(meta.get("target_T", DEF_T))
+    T = int(meta.get("target_T"))
     in_name = meta.get("input_name", "clips")
     out_name = meta.get("output_name", "logits")
 
     mu = np.asarray(meta["zscore_mu"], np.float32)
     std = np.asarray(meta["zscore_std"], np.float32)
     std = np.where(np.abs(std) < 1e-8, 1.0, std)
+
+    # ===== 모델 구성 로그 (한 줄) =====
+    fb = meta.get("frames_before_peak", None)
+    fa = meta.get("frames_after_peak", None)
+
+    if fb is not None and fa is not None and T is not None:
+        peak_len = max(T - fb - fa, 0)
+        print(f"[INFO] model : {fb}-peak-{fa}")
+    else:
+        print("[INFO] model : (frames_before_peak/after_peak 정보 없음)")
+
 
     # ONNX 세션 생성 (CUDA 옵션)
     onnx_path = resource_path(args.onnx)
