@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 5145767458432394274}
   - component: {fileID: 5145767458432394285}
   - component: {fileID: -5784590473075742718}
+  - component: {fileID: 708235538798404717}
   m_Layer: 0
   m_Name: Shuttlecock
   m_TagString: Shuttlecock
@@ -30,10 +31,11 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5145767458432394284}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 14.343037, y: 10.472034, z: -1.9408926}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 3719075656961913668}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -52,7 +54,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5145767458432394284}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -134,6 +136,7 @@ MonoBehaviour:
   lifeTime: 1
   landingMarkerPrefab: {fileID: 5524755386889355301, guid: 5f4d47911623e534c9174f2c53c98a65, type: 3}
   shootingLock: 0
+  rallyManager: {fileID: 0}
 --- !u!96 &-5784590473075742718
 TrailRenderer:
   serializedVersion: 2
@@ -233,3 +236,95 @@ TrailRenderer:
   m_MinVertexDistance: 0.1
   m_Autodestruct: 0
   m_Emitting: 1
+--- !u!114 &708235538798404717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5145767458432394284}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fed34a7a024b7ba46b410f2e6babbe87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rb: {fileID: 0}
+  visual: {fileID: 0}
+  localHeadAxis: {x: 0, y: 1, z: 0}
+  worldUpAxis: {x: 0, y: 1, z: 0}
+  minSpeed: 0.2
+  turnSharpness: 20
+--- !u!1001 &3716320408129450586
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 5145767458432394278}
+    m_Modifications:
+    - target: {fileID: 1327691812583296, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_Name
+      value: Shuttlecock
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.4773
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.4773
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.4773
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.20878
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+--- !u!4 &3719075656961913668 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+  m_PrefabInstance: {fileID: 3716320408129450586}
+  m_PrefabAsset: {fileID: 0}
