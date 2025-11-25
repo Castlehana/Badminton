@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;   // ← 추가
 
 public enum RallyState
 {
@@ -50,9 +51,16 @@ public class RallyManager : MonoBehaviour
 
     public MenuSceneLoader menuSceneLoader;
 
-
     // 인스펙터에서 Enemy 오브젝트를 드래그해서 넣기
     public GameObject enemyObject;
+
+
+    [Header("Ready 페이드용 이미지")]
+    public Image readyImage;          // 비활성화 되어 있는 Image
+    public float readyFadeDuration = 0.5f;
+    public ScreenFreezeEffect screenFreeze;  // 인스펙터에서 할당
+
+
 
     // Start is called before the first frame update
     void Start()
@@ -79,6 +87,18 @@ public class RallyManager : MonoBehaviour
         {
             serveText.gameObject.SetActive(false);
         }
+
+        // Fade 전환
+        if (readyImage != null)
+        {
+            // 처음엔 꺼져 있고, 알파 0으로
+            Color c = readyImage.color;
+            c.a = 0f;
+            readyImage.color = c;
+            readyImage.gameObject.SetActive(false);
+        }
+
+
     }
 
     // Update is called once per frame
@@ -327,6 +347,9 @@ public class RallyManager : MonoBehaviour
             serveText.gameObject.SetActive(false);
         }
 
+        screenFreeze.PlayFreeze();
+        yield return new WaitForSecondsRealtime(0.5f);
+
         // 4) 애들 움직임 재개
         Time.timeScale = prevTimeScale;
 
@@ -338,6 +361,16 @@ public class RallyManager : MonoBehaviour
         {
             ResetPosition();
             State = RallyState.Ready;
+            // ② 0.5초 기다리기
+            //yield return new WaitForSecondsRealtime(0.5f);
+
+            // ③ Ready가 된 "후"에 FadeOut
+            if (readyImage != null)
+            {
+                //yield return StartCoroutine(FadeOutReadyImage());
+            }
+
+
 
             if (Turn == ServeTurn.AiTurn && !isAiServing)
             {
@@ -347,4 +380,129 @@ public class RallyManager : MonoBehaviour
 
         _pointSequenceRunning = false;
     }
+
+    // ==================== Ready 이미지 페이드 인/아웃 ====================
+
+    private IEnumerator FadeInReadyImage()
+    {
+        if (readyImage == null) yield break;
+
+        // readyImage 포함, 모든 자식 Image / TextMeshProUGUI 가져오기
+        Image[] images = readyImage.GetComponentsInChildren<Image>(true);
+        TextMeshProUGUI[] texts = readyImage.GetComponentsInChildren<TextMeshProUGUI>(true);
+
+        readyImage.gameObject.SetActive(true);
+
+        // 시작은 알파 0
+        foreach (var img in images)
+        {
+            Color c = img.color;
+            c.a = 0f;
+            img.color = c;
+        }
+        foreach (var txt in texts)
+        {
+            Color c = txt.color;
+            c.a = 0f;
+            txt.color = c;
+        }
+
+        float t = 0f;
+        while (t < readyFadeDuration)
+        {
+            t += Time.unscaledDeltaTime;  // timeScale=0이어도 동작
+            float alpha = Mathf.Clamp01(t / readyFadeDuration);
+
+            foreach (var img in images)
+            {
+                Color c = img.color;
+                c.a = alpha;
+                img.color = c;
+            }
+            foreach (var txt in texts)
+            {
+                Color c = txt.color;
+                c.a = alpha;
+                txt.color = c;
+            }
+
+            yield return null;
+        }
+
+        // 마지막 보정
+        foreach (var img in images)
+        {
+            Color c = img.color;
+            c.a = 1f;
+            img.color = c;
+        }
+        foreach (var txt in texts)
+        {
+            Color c = txt.color;
+            c.a = 1f;
+            txt.color = c;
+        }
+    }
+    private IEnumerator FadeOutReadyImage()
+    {
+        if (readyImage == null) yield break;
+
+        Image[] images = readyImage.GetComponentsInChildren<Image>(true);
+        TextMeshProUGUI[] texts = readyImage.GetComponentsInChildren<TextMeshProUGUI>(true);
+
+        // 시작은 알파 1
+        foreach (var img in images)
+        {
+            Color c = img.color;
+            c.a = 1f;
+            img.color = c;
+        }
+        foreach (var txt in texts)
+        {
+            Color c = txt.color;
+            c.a = 1f;
+            txt.color = c;
+        }
+
+        float t = 0f;
+        while (t < readyFadeDuration)
+        {
+            t += Time.unscaledDeltaTime;
+            float alpha = 1f - Mathf.Clamp01(t / readyFadeDuration);
+
+            foreach (var img in images)
+            {
+                Color c = img.color;
+                c.a = alpha;
+                img.color = c;
+            }
+            foreach (var txt in texts)
+            {
+                Color c = txt.color;
+                c.a = alpha;
+                txt.color = c;
+            }
+
+            yield return null;
+        }
+
+        foreach (var img in images)
+        {
+            Color c = img.color;
+            c.a = 0f;
+            img.color = c;
+        }
+        foreach (var txt in texts)
+        {
+            Color c = txt.color;
+            c.a = 0f;
+            txt.color = c;
+        }
+
+        readyImage.gameObject.SetActive(false);
+    }
+
+
+
 }
+
