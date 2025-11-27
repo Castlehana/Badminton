@@ -35,6 +35,9 @@ public class RallyManager : MonoBehaviour
     public TextMeshProUGUI playerText;
     public TextMeshProUGUI opponentText;
 
+    public TextMeshProUGUI AODplayerText;
+    public TextMeshProUGUI AODopponentText;
+
     private bool isResetting = false;
     private bool isAiServing = false;
 
@@ -270,8 +273,12 @@ public class RallyManager : MonoBehaviour
     {
         if (playerText)
             playerText.text =  player.ToString();
+        if (AODplayerText)
+            AODplayerText.text = player.ToString();
         if (opponentText)
             opponentText.text = opponent.ToString();
+        if (AODopponentText)
+            AODopponentText.text = opponent.ToString();
     }
     public void ResetPosition()
     {
