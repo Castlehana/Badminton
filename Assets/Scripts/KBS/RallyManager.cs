@@ -341,10 +341,15 @@ public class RallyManager : MonoBehaviour
         // 3) 서브! 텍스트 표시
         if (serveText != null)
         {
-            serveText.gameObject.SetActive(true);
-            serveText.text = "Start!";
-            yield return new WaitForSecondsRealtime(serveTextDuration);
-            serveText.gameObject.SetActive(false);
+            if (Mathf.Abs(myScore - aiScore) >= 2 && ((myScore >= gamePoint) || (aiScore >= gamePoint)))
+            { }
+            else
+            {
+                serveText.gameObject.SetActive(true);
+                serveText.text = "Start!";
+                yield return new WaitForSecondsRealtime(serveTextDuration);
+                serveText.gameObject.SetActive(false);
+            }
         }
 
         screenFreeze.PlayFreeze();
