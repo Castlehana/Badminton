@@ -25,7 +25,7 @@ public class ModeSelectHeader : MonoBehaviour
         if (sm != null && sm.Current != null)
         {
             var d = sm.Current;
-            msg = $"Slot {d.slotIndex}, {d.profileName}";
+            msg = $"{d.profileName}";
         }
         else
         {
