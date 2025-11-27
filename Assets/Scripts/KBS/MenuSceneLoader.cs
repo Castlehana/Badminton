@@ -15,6 +15,7 @@ public class MenuSceneLoader : MonoBehaviour
     [SerializeField] private string selectModeScene = "SelectModeMenu";
     [SerializeField] private string winScene = "WinScene";
     [SerializeField] private string loseScene = "LoseScene";
+    [SerializeField] private string titleScene = "TitleScene";
 
     public void LoadEasy() => SceneManager.LoadScene(easyScene);
     public void LoadNormal() => SceneManager.LoadScene(normalScene);
@@ -25,5 +26,6 @@ public class MenuSceneLoader : MonoBehaviour
     public void LoadSelectMode() => SceneManager.LoadScene(selectModeScene);
     public void LoadWinScene() => SceneManager.LoadScene(winScene);
     public void LoadLoseScene() => SceneManager.LoadScene(loseScene);
+    public void LoadTitleScene() => SceneManager.LoadScene(titleScene);
 
 }

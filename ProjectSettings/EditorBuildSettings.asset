@@ -50,4 +50,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/LoadScene/ToNormalMap.unity
     guid: c6a31b1add02d97489757f4c74131c47
+  - enabled: 1
+    path: Assets/Scenes/TitleScene/TitleScene.unity
+    guid: 732017b55d2e4474fb0f414d8be38e74
   m_configObjects: {}

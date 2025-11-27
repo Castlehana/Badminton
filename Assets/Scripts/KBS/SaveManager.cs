@@ -34,7 +34,7 @@ public class SaveManager : MonoBehaviour
         {
             var json = File.ReadAllText(GetPath(slot));
             var data = JsonUtility.FromJson<SaveData>(json);
-            return $"{data.profileName} | Wins {data.achv.totalWins} / Loses {data.achv.totalLoses}";
+            return $"{data.profileName}"; // | Wins {data.achv.totalWins} / Loses {data.achv.totalLoses}
         }
         catch { return "Corruted Slot"; }
     }
