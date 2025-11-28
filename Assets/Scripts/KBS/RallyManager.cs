@@ -162,6 +162,13 @@ public class RallyManager : MonoBehaviour
         int prevMyScore = myScore;
         int prevAiScore = aiScore;
 
+        if (Mode == ModeState.Training)
+        {
+            StartCoroutine(ReturnToReady());
+            return;
+        }
+
+
         // 득점 판정 처리
         if (underNet)
         {

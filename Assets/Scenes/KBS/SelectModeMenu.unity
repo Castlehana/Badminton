@@ -3575,7 +3575,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   easyScene: Easy_GameMap 1
-  normalScene: normal_GameMap 2
+  normalScene: Normal_GameMap
   hardScene: Hard_GameMap 3
   trainingScene: Training_GameMap
   achievementScene: AchievementScene
@@ -3583,6 +3583,7 @@ MonoBehaviour:
   selectModeScene: SelectModeMenu
   winScene: WinScene
   loseScene: LoseScene
+  titleScene: TitleScene
 --- !u!4 &1350338130
 Transform:
   m_ObjectHideFlags: 0
