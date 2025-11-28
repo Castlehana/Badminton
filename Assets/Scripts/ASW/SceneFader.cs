@@ -10,6 +10,15 @@ public class SceneFader : MonoBehaviour
 
     private void Start()
     {
+
+
+        string currentSceneName = SceneManager.GetActiveScene().name;
+
+        //if (currentSceneName == "SelectModeMenu")
+        //{
+        //    fadeImage.gameObject.SetActive(false);
+        //    return;
+        //}
         // 초기 페이드 인
         if (fadeImage != null)
         {
@@ -27,13 +36,22 @@ public class SceneFader : MonoBehaviour
             return;
         }
 
-        fadeImage.gameObject.SetActive(true); // 페이드 이미지를 활성화
-        StartCoroutine(Fade(0, 1, fadeDuration, () =>
-        {
-            // 씬 전환 후 다시 페이드 인 실행
-            SceneManager.LoadScene(sceneName);
-            StartCoroutine(Fade(1, 0, fadeDuration, () => fadeImage.gameObject.SetActive(false))); // 투명하게
-        }));
+        string currentSceneName = SceneManager.GetActiveScene().name;
+
+        //if (sceneName == "SelectModeMenu" &&  currentSceneName != "TitleScene")
+        //{
+        //    SceneManager.LoadScene(sceneName);
+        //}
+        //else
+        //{
+            fadeImage.gameObject.SetActive(true); // 페이드 이미지를 활성화
+            StartCoroutine(Fade(0, 1, fadeDuration, () =>
+            {
+                // 씬 전환 후 다시 페이드 인 실행
+                SceneManager.LoadScene(sceneName);
+                StartCoroutine(Fade(1, 0, fadeDuration, () => fadeImage.gameObject.SetActive(false))); // 투명하게
+            }));
+       // }
     }
 
     // 페이드 코루틴 (공통 메서드)

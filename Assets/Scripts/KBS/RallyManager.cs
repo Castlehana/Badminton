@@ -63,7 +63,23 @@ public class RallyManager : MonoBehaviour
     public float readyFadeDuration = 0.5f;
     public ScreenFreezeEffect screenFreeze;  // 인스펙터에서 할당
 
+    [Header("서브 표시 오브젝트")]
+    public GameObject EnemyServe;
+    public GameObject PlayerServe;
 
+    [Header("서브 사운드")]
+    public AudioSource sfxSource;   // 넣기 귀찮으면 비워두고, 아래에서 PlayClipAtPoint 사용
+    public AudioClip serveClip;
+    public float serveVolume = 1f;
+
+    [Header("득점 사운드")]
+    public AudioClip winClip;
+    public AudioClip loseClip;
+    public float resultVolume = 1f;
+
+    [Header("점수 갱신 사운드")]
+    public AudioClip winScoreClip;
+    public AudioClip loseScoreClip;
 
     // Start is called before the first frame update
     void Start()
@@ -115,23 +131,34 @@ public class RallyManager : MonoBehaviour
             pos.z = -10f;
             enemyObject.transform.position = pos;
         }
-        // Ready가 아닐 때는 위치를 건드리지 않으므로 "고정 풀림"
-        /*
-        if (State == RallyState.Ended && !isResetting)
+
+        // Serve 표시 오브젝트 활성/비활성
+        if (State == RallyState.Ready)
         {
-            StartCoroutine(ReturnToReady());
+            if (Turn == ServeTurn.MyTurn)
+            {
+                if (PlayerServe != null) PlayerServe.SetActive(true);
+                if (EnemyServe != null) EnemyServe.SetActive(false);
+            }
+            else  // AI 서브
+            {
+                if (PlayerServe != null) PlayerServe.SetActive(false);
+                if (EnemyServe != null) EnemyServe.SetActive(true);
+            }
         }
-        if (State == RallyState.Ready && Turn == ServeTurn.AiTurn && !isAiServing)
+        else
         {
-            StartCoroutine(AiServe());
-        }*/
+            if (PlayerServe != null) PlayerServe.SetActive(false);
+            if (EnemyServe != null) EnemyServe.SetActive(false);
+        }
+
     }
 
     private IEnumerator AiServe()
     {
         isAiServing = true;
 
-        yield return new WaitForSeconds(1.0f);
+        yield return new WaitForSeconds(3.0f);
 
         UnityEngine.Debug.Log("Ai 서브!!");
 
@@ -141,6 +168,9 @@ public class RallyManager : MonoBehaviour
         shuttle.Launch(0f, 45f, 15f);
 
         State = RallyState.Rallying;
+
+        PlayServeSfx();
+
 
         isAiServing = false ;
     }
@@ -162,6 +192,52 @@ public class RallyManager : MonoBehaviour
         int prevMyScore = myScore;
         int prevAiScore = aiScore;
 
+        // 득점 사운드 처리
+        if (underNet)
+        {
+            // 1. 네트 밑 통과 + 플레이어 코트 -> 플레이어 득점
+            if (mySide)
+            {
+                AudioSource.PlayClipAtPoint(winClip, Camera.main.transform.position, 1f);
+
+            }
+            // 2. 네트 밑 통과 + 상대 코트 -> 상대 득점
+            if (opponentSide)
+            {
+                AudioSource.PlayClipAtPoint(loseClip, Camera.main.transform.position, 1f);
+            }
+        }
+        else
+        {
+            if (mySide)
+            {
+                // 3. 플레이어 영역 + 인코트 -> 상대 득점
+                if (inCourt)
+                {
+                    AudioSource.PlayClipAtPoint(loseClip, Camera.main.transform.position, 1f);
+                }
+                // 4. 플레이어 영역 + 아웃코트 -> 플레이어 득점
+                else
+                {
+                    AudioSource.PlayClipAtPoint(winClip, Camera.main.transform.position, 1f);
+                }
+            }
+            else if (opponentSide)
+            {
+                // 5. 상대 영역 + 인코트 -> 플레이어 득점
+                if (inCourt)
+                {
+                    AudioSource.PlayClipAtPoint(winClip, Camera.main.transform.position, 1f);
+                }
+                // 6. 상대 영역 + 아웃코트 -> 상대 득점
+                else
+                {
+                    AudioSource.PlayClipAtPoint(loseClip, Camera.main.transform.position, 1f);
+                }
+            }
+        }
+
+
         if (Mode == ModeState.Training)
         {
             StartCoroutine(ReturnToReady());
@@ -178,6 +254,7 @@ public class RallyManager : MonoBehaviour
                 myScore++;
                 Turn = ServeTurn.MyTurn;
                 UnityEngine.Debug.Log("Player Point");
+                AudioSource.PlayClipAtPoint(winClip, Camera.main.transform.position, 1f);
             }
             // 2. 네트 밑 통과 + 상대 코트 -> 상대 득점
             if (opponentSide)
@@ -185,6 +262,7 @@ public class RallyManager : MonoBehaviour
                 aiScore++;
                 Turn = ServeTurn.AiTurn;
                 UnityEngine.Debug.Log("AI Point");
+                AudioSource.PlayClipAtPoint(loseClip, Camera.main.transform.position, 1f);
             } 
         }
         else
@@ -279,13 +357,26 @@ public class RallyManager : MonoBehaviour
     public void UpdateScoreUI(int player, int opponent)
     {
         if (playerText)
-            playerText.text =  player.ToString();
+        {
+            playerText.text = player.ToString();
+
+        }
+
         if (AODplayerText)
+        {
             AODplayerText.text = player.ToString();
+        }
+            
         if (opponentText)
+        {
             opponentText.text = opponent.ToString();
+        }
+            
         if (AODopponentText)
+        {
             AODopponentText.text = opponent.ToString();
+        }
+            
     }
     public void ResetPosition()
     {
@@ -343,7 +434,7 @@ public class RallyManager : MonoBehaviour
             yield return new WaitForSecondsRealtime(scoreHoldDuration);
 
             // 점수판 숨기기
-            scorePanel.gameObject.SetActive(false);
+            //scorePanel.gameObject.SetActive(false);
         }
         else
         {
@@ -352,22 +443,25 @@ public class RallyManager : MonoBehaviour
             yield return new WaitForSecondsRealtime(1.0f);
         }
 
-        // 3) 서브! 텍스트 표시
-        if (serveText != null)
-        {
-            if (Mathf.Abs(myScore - aiScore) >= 2 && ((myScore >= gamePoint) || (aiScore >= gamePoint)))
-            { }
-            else
-            {
-                serveText.gameObject.SetActive(true);
-                serveText.text = "Start!";
-                yield return new WaitForSecondsRealtime(serveTextDuration);
-                serveText.gameObject.SetActive(false);
-            }
-        }
+        ////3) 서브! 텍스트 표시
+        //if (serveText != null)
+        //{
+        //    if (Mathf.Abs(myScore - aiScore) >= 2 && ((myScore >= gamePoint) || (aiScore >= gamePoint)))
+        //    { }
+        //    else
+        //    {
+        //        serveText.gameObject.SetActive(true);
+        //        serveText.text = "Start!";
+        //        yield return new WaitForSecondsRealtime(serveTextDuration);
+        //        serveText.gameObject.SetActive(false);
+        //    }
+        //}
 
         screenFreeze.PlayFreeze();
         yield return new WaitForSecondsRealtime(0.5f);
+
+        // 점수판 숨기기
+        scorePanel.gameObject.SetActive(false);
 
         // 4) 애들 움직임 재개
         Time.timeScale = prevTimeScale;
@@ -521,7 +615,21 @@ public class RallyManager : MonoBehaviour
         readyImage.gameObject.SetActive(false);
     }
 
+    public void PlayServeSfx()
+    {
+        if (serveClip == null) return;
 
+        if (sfxSource != null)
+        {
+            sfxSource.PlayOneShot(serveClip, serveVolume);
+        }
+        else
+        {
+            var cam = Camera.main;
+            Vector3 pos = cam != null ? cam.transform.position : Vector3.zero;
+            AudioSource.PlayClipAtPoint(serveClip, pos, serveVolume);
+        }
+    }
 
 }
 

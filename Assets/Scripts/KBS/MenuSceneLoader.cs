@@ -17,15 +17,30 @@ public class MenuSceneLoader : MonoBehaviour
     [SerializeField] private string loseScene = "LoseScene";
     [SerializeField] private string titleScene = "TitleScene";
 
-    public void LoadEasy() => SceneManager.LoadScene(easyScene);
-    public void LoadNormal() => SceneManager.LoadScene(normalScene);
-    public void LoadHard() => SceneManager.LoadScene(hardScene);
-    public void LoadTraining() => SceneManager.LoadScene(trainingScene);
-    public void LoadAchievement() => SceneManager.LoadScene(achievementScene);
-    public void LoadDataFile() => SceneManager.LoadScene(dataFileScene);
-    public void LoadSelectMode() => SceneManager.LoadScene(selectModeScene);
-    public void LoadWinScene() => SceneManager.LoadScene(winScene);
-    public void LoadLoseScene() => SceneManager.LoadScene(loseScene);
-    public void LoadTitleScene() => SceneManager.LoadScene(titleScene);
+    [Header("Fade Controller")]
+    public SceneFader sceneFader;   // 인스펙터에서 할당
 
+    // 공통: 페이드 있으면 페이드로, 없으면 바로 로드
+    private void LoadSceneWithFade(string sceneName)
+    {
+        if (sceneFader != null)
+        {
+            sceneFader.FadeOutAndLoadScene(sceneName);
+        }
+        else
+        {
+            SceneManager.LoadScene(sceneName);
+        }
+    }
+
+    public void LoadEasy() => LoadSceneWithFade(easyScene);
+    public void LoadNormal() => LoadSceneWithFade(normalScene);
+    public void LoadHard() => LoadSceneWithFade(hardScene);
+    public void LoadTraining() => LoadSceneWithFade(trainingScene);
+    public void LoadAchievement() => LoadSceneWithFade(achievementScene);
+    public void LoadDataFile() => LoadSceneWithFade(dataFileScene);
+    public void LoadSelectMode() => LoadSceneWithFade(selectModeScene);
+    public void LoadWinScene() => LoadSceneWithFade(winScene);
+    public void LoadLoseScene() => LoadSceneWithFade(loseScene);
+    public void LoadTitleScene() => LoadSceneWithFade(titleScene);
 }

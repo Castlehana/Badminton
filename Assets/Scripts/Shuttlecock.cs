@@ -23,12 +23,18 @@ public class Shuttlecock : MonoBehaviour
     [Header("예상 낙하 지점 표시용 프리팹 (Goal)")]
     public GameObject landingMarkerPrefab;
 
+
+
     private GameObject landingMarkerInstance;
 
     private bool lifeTimerStarted = false; // y<=0.7 이후 타이머 시작 여부
     public bool shootingLock = false;      // 발사 잠금 상태
 
     int lastSign;
+
+    private bool lockXZ = false;
+    private float lockedX;
+    private float lockedZ;
 
     // 낙하 지점 영역 판정 용 변수
     private bool alreadyLanded = false;
@@ -89,6 +95,11 @@ public class Shuttlecock : MonoBehaviour
     private void StartLifeTimer()
     {
         lifeTimerStarted = true;
+
+        // X,Z 고정 시작
+        lockXZ = true;
+        lockedX = transform.position.x;
+        lockedZ = transform.position.z;
 
         // 득점 판정 처리 코루틴 함수
         StartCoroutine(LandingJudgeRoutine());
@@ -206,6 +217,15 @@ public class Shuttlecock : MonoBehaviour
         v += dragAccel * dt;
 
         rb.velocity = v;
+
+        // X, Z를 고정시키는 부분
+        if (lockXZ)
+        {
+            Vector3 pos = transform.position;
+            pos.x = lockedX;
+            pos.z = lockedZ;
+            transform.position = pos;
+        }
     }
 
     private IEnumerator LandingJudgeRoutine()
@@ -255,4 +275,5 @@ public class Shuttlecock : MonoBehaviour
             //UnityEngine.Debug.Log("네트 밑을 지나감");
         }
     }
+
 }

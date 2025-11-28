@@ -179,7 +179,7 @@ public class PlayerShooting : MonoBehaviour
             UnityEngine.Debug.Log("서브!!");
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
-
+            rallyManager.PlayServeSfx();
             shuttle.Launch(0f, 180 - 45f, 20f);
 
             rallyManager.State = RallyState.Rallying;
@@ -209,10 +209,9 @@ public class PlayerShooting : MonoBehaviour
         // 서브의 경우
         if ((rallyManager.State == RallyState.Ready) && (rallyManager.Turn == ServeTurn.MyTurn))
         {
-            UnityEngine.Debug.Log("서브!!");
+            rallyManager.PlayServeSfx();
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
-
             shuttle.Launch(0f, 180f - 45f, 20f);
 
             rallyManager.State = RallyState.Rallying;
