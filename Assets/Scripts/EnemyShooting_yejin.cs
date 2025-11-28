@@ -51,7 +51,7 @@ public class EnemyShooting_yejin : MonoBehaviour
     }
 
     // 좌우 각도(yaw), 위아래 각도(pitch), 힘(force), 로그 이름, 타겟들
-    void LaunchToAll(float baseYaw, float pitch, float force, string shotName, List<Shuttlecock> targets)
+    void LaunchToAll(float baseYaw, float pitch, float force, string shotName, List<Shuttlecock> targets, bool markAsSmash = false)
     {
         // PlayerShooting과 동일한 yaw 로직
         float playerX = transform.position.x;
@@ -77,13 +77,25 @@ public class EnemyShooting_yejin : MonoBehaviour
         {
             if (sc != null)
             {
-                sc.Launch(yaw, pitch, force); 
+                if (sc.Launch(yaw, pitch, force))
                 {
-                    Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}, Pitch: {pitch}, Force: {force}) → {sc.name}");
-                    firstLogged = true;
+                    PlaySwingSfx(markAsSmash);
+                    if (!firstLogged)
+                    {
+                        Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}, Pitch: {pitch}, Force: {force}) → {sc.name}");
+                        firstLogged = true;
+                    }
                 }
             }
         }
+    }
+
+    private void PlaySwingSfx(bool isSmash)
+    {
+        if (AudioManager.Instance == null) return;
+
+        string key = isSmash ? "Shuttle_Smash" : "Shuttle_Hit";
+        AudioManager.Instance.PlaySFX(key);
     }
 
     // 오버 스윙: Clear, Drop, Drive
@@ -134,7 +146,7 @@ public class EnemyShooting_yejin : MonoBehaviour
             return;
         }
 
-        LaunchToAll(0f, -5f, 30f, "스매시!!!!!!!!!!!!", targets);
+        LaunchToAll(0f, -5f, 30f, "스매시!!!!!!!!!!!!", targets, true);
     }
 
 

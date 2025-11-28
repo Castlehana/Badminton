@@ -48,7 +48,7 @@ public class PlayerShooting : MonoBehaviour
         LaunchToAll(testYaw, testPitch, testForce, "Test", shuttlecocksInRange);
     }
 
-    void LaunchToAll(float baseYaw, float pitch, float force, string shotName, List<Shuttlecock> targets)
+    void LaunchToAll(float baseYaw, float pitch, float force, string shotName, List<Shuttlecock> targets, bool markAsSmash = false)
     {
         float playerX = transform.position.x;
         float yaw = 0f;
@@ -74,15 +74,27 @@ public class PlayerShooting : MonoBehaviour
             if (sc != null)
             {
                 UnityEngine.Debug.Log("이프 들어옴");
-                sc.Launch(yaw, pitch, force);
-                Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}) → {sc.name}");
+                if (sc.Launch(yaw, pitch, force))
+                {
+                    PlaySwingSfx(markAsSmash);
+                    Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}) → {sc.name}");
+                }
             }
         }
     }
 
+    private void PlaySwingSfx(bool isSmash)
+    {
+        if (AudioManager.Instance == null) return;
+
+        string key = isSmash ? "Shuttle_Smash" : "Shuttle_Hit";
+        AudioManager.Instance.PlaySFX(key);
+    }
+
     public void Clear() => LaunchToAll(0f, 180-45f, 30f, "클리어", shuttlecocksInRange);
     public void Drop() => LaunchToAll(0f, 180 - 50f, 15f, "드롭", shuttlecocksInRange);
-    public void Smash() => LaunchToAll(0f, 180+5f, 30f, "스매시", shuttlecocksInRange);
+    public void Smash() => LaunchToAll(0f, 180 + 5f, 30f, "스매시", shuttlecocksInRange, true);
+ 
     //public void Push() => LaunchToAll(0f, -40f, 40f, "푸시", shuttlecocksInRange);
     public void Hairpin() => LaunchToAll(0f, 180 - 38f, 18f, "헤어핀", shuttlecocksInRange);
     public void Drive() => LaunchToAll(0f, 180 - 10f, 25f, "드라이브", shuttlecocksInRange);

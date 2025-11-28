@@ -112,7 +112,7 @@ public class Shuttlecock : MonoBehaviour
     }
 
 
-    public void Launch(float yaw, float pitch, float force)
+    public bool Launch(float yaw, float pitch, float force)
     {
         UnityEngine.Debug.Log("런치됨ㅋ");
         //if (shootingLock) return; // 잠금 상태면 실행 안 함
@@ -126,7 +126,7 @@ public class Shuttlecock : MonoBehaviour
         if (currentSign == lastSign)
         {
             UnityEngine.Debug.Log("더블 슈팅 금지");
-            return;
+            return false;
         }
 
         // 여기까지 왔으면 “부호가 처음이거나 바뀐 상황” → 발사 허용
@@ -156,6 +156,8 @@ public class Shuttlecock : MonoBehaviour
             if (!landingMarkerInstance.CompareTag("Goal"))
                 landingMarkerInstance.tag = "Goal";
         }
+
+        return true;
     }
 
     private IEnumerator ShootingLockRoutine()

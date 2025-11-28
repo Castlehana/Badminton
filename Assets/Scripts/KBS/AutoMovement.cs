@@ -5,20 +5,20 @@ using UnityEngine;
 
 public class AutoMovement : MonoBehaviour
 {
-    // player ÀÌµ¿ ¼Óµµ
+    // player ï¿½Ìµï¿½ ï¿½Óµï¿½
     float moveSpeed = 10f;
 
     public float jumpForce = 9f;
 
-    // Ãæµ¹ ÄÄÆ÷³ÍÆ®
+    // ï¿½æµ¹ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®
     Rigidbody rb;
 
-    // RallyManager ÂüÁ¶
+    // RallyManager ï¿½ï¿½ï¿½ï¿½
     public RallyManager rallyManager;
 
     [Header("Ground Check")]
-    public float groundCheckDistance = 3.0f; // ¾ó¸¶³ª °¡±î¿ì¸é ¶¥À¸·Î º¼Áö
-    public LayerMask groundLayer;            // ¹Ù´Ú ·¹ÀÌ¾î ÁöÁ¤ (¿¹: Ground)
+    public float groundCheckDistance = 3.0f; // ï¿½ó¸¶³ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+    public LayerMask groundLayer;            // ï¿½Ù´ï¿½ ï¿½ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½: Ground)
 
     public bool isGrounded;
 
@@ -37,7 +37,7 @@ public class AutoMovement : MonoBehaviour
     {
         isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance + 0.1f, groundLayer);
 
-        // Á¡ÇÁ ÀÔ·Â Ã³¸® (Y´Â ¿ÀÁ÷ ¿©±â¼­¸¸ º¯ÇÔ)
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½Ô·ï¿½ Ã³ï¿½ï¿½ (Yï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½â¼­ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
         if (Input.GetKeyDown(KeyCode.Alpha7))
         {
             Jump();
@@ -49,8 +49,9 @@ public class AutoMovement : MonoBehaviour
     {
         if (isGrounded && rallyManager.State == RallyState.Rallying)
         {
-            UnityEngine.Debug.Log("Á¡ÇÁ!!");
+            UnityEngine.Debug.Log("ì§¬í‘¸ì§¬í‘¸!!");
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            PlayJumpSfx();
         }
     }
 
@@ -67,7 +68,7 @@ public class AutoMovement : MonoBehaviour
 
         GameObject goalObj = GameObject.FindGameObjectWithTag("Goal");
 
-        // ÇöÀç ³» À§Ä¡¿Í °ñ À§Ä¡, Áß½É ±¸ÇÏ±â
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Ä¡, ï¿½ß½ï¿½ ï¿½ï¿½ï¿½Ï±ï¿½
         Vector3 myPos;
         Vector3 destPos;
         Vector3 centerPos;
@@ -85,17 +86,23 @@ public class AutoMovement : MonoBehaviour
         centerPos.y = myPos.y;
         centerPos.z = 10.0f;
 
-        // ³» ÄÚÆ®ÂÊ¿¡ 'Goal' ÅÂ±×°¡ ÀÖÀ¸¸é µû¶ó°¡±â
+        // ï¿½ï¿½ ï¿½ï¿½Æ®ï¿½Ê¿ï¿½ 'Goal' ï¿½Â±×°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ó°¡±ï¿½
         if (goalObj != null && destPos.z > 0)
         {
             Vector3 nextPos = Vector3.MoveTowards(myPos, destPos, moveSpeed * Time.fixedDeltaTime);
             rb.MovePosition(nextPos);
         }
-        // °ñ ¸ñÇ¥°¡ »ç¶óÁö¸é ´Ù½Ã Áß½ÉÀ¸·Î º¹±Í
+        // ï¿½ï¿½ ï¿½ï¿½Ç¥ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ù½ï¿½ ï¿½ß½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         else
         {
             Vector3 nextPos = Vector3.MoveTowards(myPos, centerPos, moveSpeed * Time.fixedDeltaTime);
             rb.MovePosition(nextPos);
         }
+    }
+
+    private void PlayJumpSfx()
+    {
+        if (AudioManager.Instance == null) return;
+        AudioManager.Instance.PlaySFX("Jump");
     }
 }

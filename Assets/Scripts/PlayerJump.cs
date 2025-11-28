@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class PlayerJump : MonoBehaviour
 {
-    public float jumpForce = 7f;      // Á¡ÇÁ Èû
-    public LayerMask groundLayer;     // ¶¥ ·¹ÀÌ¾î
-    public Transform groundCheck;     // ¶¥ Ã¼Å© À§Ä¡
+    public float jumpForce = 7f;      // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
+    public LayerMask groundLayer;     // ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾ï¿½
+    public Transform groundCheck;     // ï¿½ï¿½ Ã¼Å© ï¿½ï¿½Ä¡
     public float groundCheckRadius = 0.2f;
 
     private Rigidbody rb;
@@ -17,19 +17,26 @@ public class PlayerJump : MonoBehaviour
 
     void Update()
     {
-        // ¶¥¿¡ ´ê¾ÆÀÖ´ÂÁö °Ë»ç
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½ ï¿½Ë»ï¿½
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
 
-        // ½ºÆäÀÌ½º¹Ù·Î Á¡ÇÁ
+        // ï¿½ï¿½ï¿½ï¿½ï¿½Ì½ï¿½ï¿½Ù·ï¿½ ï¿½ï¿½ï¿½ï¿½
         if (Input.GetKeyDown(KeyCode.Alpha9))
         {
             if (isGrounded)
             {
                 UnityEngine.Debug.Log("jump!!");
                 rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                PlayJumpSfx();
             }
             else
                 UnityEngine.Debug.Log("cant!!");
         }
+    }
+
+    private void PlayJumpSfx()
+    {
+        if (AudioManager.Instance == null) return;
+        AudioManager.Instance.PlaySFX("Jump");
     }
 }

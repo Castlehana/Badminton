@@ -51,7 +51,7 @@ public class EnemyShooting : MonoBehaviour
     }
 
     // 醫뚯슦 媛곷룄(yaw), �꾩븘�� 媛곷룄(pitch), ��(force), 濡쒓렇 �대쫫, ��寃잙뱾
-    void LaunchToAll(float baseYaw, float pitch, float force, string shotName, List<Shuttlecock> targets)
+    void LaunchToAll(float baseYaw, float pitch, float force, string shotName, List<Shuttlecock> targets, bool markAsSmash = false)
     {
         // PlayerShooting怨� �숈씪�� yaw 濡쒖쭅
         float playerX = transform.position.x;
@@ -78,14 +78,25 @@ public class EnemyShooting : MonoBehaviour
         {
             if (sc != null)
             {
-                sc.Launch(yaw, pitch, force); // �� pitch �ㅼ쭛湲� �쒓굅 �� PlayerShooting怨� �숈씪
-                if (!firstLogged)
+                if (sc.Launch(yaw, pitch, force)) // �� pitch �ㅼ쭛湲� �쒓굅 �� PlayerShooting怨� �숈씪
                 {
-                    Debug.Log($"{shotName} 諛쒖궗�� (Yaw: {yaw}, Pitch: {pitch}, Force: {force}) �� {sc.name}");
-                    firstLogged = true;
+                    PlaySwingSfx(markAsSmash);
+                    if (!firstLogged)
+                    {
+                        Debug.Log($"{shotName} 諛쒖궗�� (Yaw: {yaw}, Pitch: {pitch}, Force: {force}) �� {sc.name}");
+                        firstLogged = true;
+                    }
                 }
             }
         }
+    }
+
+    private void PlaySwingSfx(bool isSmash)
+    {
+        if (AudioManager.Instance == null) return;
+
+        string key = isSmash ? "Shuttle_Smash" : "Shuttle_Hit";
+        AudioManager.Instance.PlaySFX(key);
     }
 
 
@@ -137,7 +148,7 @@ public class EnemyShooting : MonoBehaviour
             return;
         }
 
-        LaunchToAll(0f, -5f, 26.5f, "�ㅻℓ��!!!!!!!!!!!!", targets);
+        LaunchToAll(0f, -5f, 26.5f, "�ㅻℓ��!!!!!!!!!!!!", targets, true);
     }
 
 

@@ -55,6 +55,7 @@ public class PlayerMovement : MonoBehaviour
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse); // ★ 물리 점프
             Debug.Log("점프함!!!!!");
+            PlayJumpSfx();
         }
         else Debug.Log("땅이아님");
     }
@@ -92,4 +93,9 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity = vel;
     }
 
+    private void PlayJumpSfx()
+    {
+        if (AudioManager.Instance == null) return;
+        AudioManager.Instance.PlaySFX("Jump");
+    }
 }

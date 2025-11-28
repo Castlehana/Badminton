@@ -5,19 +5,19 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
 public class EnemyMovement : MonoBehaviour
 {
-    [Header("ÀÌµ¿ ¼Óµµ")]
+    [Header("ï¿½Ìµï¿½ ï¿½Óµï¿½")]
     public float moveSpeed = 5f;
 
-    [Header("Á¡ÇÁ ¼Óµµ")]
+    [Header("ï¿½ï¿½ï¿½ï¿½ ï¿½Óµï¿½")]
     public float jumpForce = 5f;
 
-    [Header("Áß·Â °¡¼Óµµ (À½¼ö °ª)")]
+    [Header("ï¿½ß·ï¿½ ï¿½ï¿½ï¿½Óµï¿½ (ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½)")]
     public float gravity = -9.81f;
 
-    [Header("¶¥ Ã¼Å©¿ë ·¹ÀÌ¾î")]
+    [Header("ï¿½ï¿½ Ã¼Å©ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾ï¿½")]
     public LayerMask groundLayer;
 
-    [Header("¶¥ Ã¼Å© Ray Ãß°¡ ±æÀÌ")]
+    [Header("ï¿½ï¿½ Ã¼Å© Ray ï¿½ß°ï¿½ ï¿½ï¿½ï¿½ï¿½")]
     public float groundCheckDistance = 0.1f;
 
     private Rigidbody rb;
@@ -34,18 +34,19 @@ public class EnemyMovement : MonoBehaviour
         rb.useGravity = false;
     }
 
-    // ¿ÜºÎ(¾ÆµÎÀÌ³ë)¿¡¼­ ÀÌµ¿ ÀÔ·ÂÀ» ¼³Á¤
+    // ï¿½Üºï¿½(ï¿½Æµï¿½ï¿½Ì³ï¿½)ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½ ï¿½Ô·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     public void SetMoveInput(Vector2 input)
     {
         moveInput = new Vector3(input.x, 0f, input.y).normalized;
     }
 
-    // ¿ÜºÎ(¾ÆµÎÀÌ³ë)¿¡¼­ Á¡ÇÁ ¿äÃ»
+    // ï¿½Üºï¿½(ï¿½Æµï¿½ï¿½Ì³ï¿½)ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã»
     public void Jump()
     {
         if (IsGrounded())
         {
             verticalVelocity = jumpForce;
+            PlayJumpSfx();
         }
     }
 
@@ -57,7 +58,7 @@ public class EnemyMovement : MonoBehaviour
             return;
         }
 
-        // Å°º¸µå ÀÌµ¿ ÀÔ·Â (Å×½ºÆ®¿ë): ÀÖÀ¸¸é '¿ì¼±¼øÀ§ ³ô°Ô' ¿ÜºÎ ÀÔ·ÂÀ» µ¤¾î¾´´Ù.
+        // Å°ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½ ï¿½Ô·ï¿½ (ï¿½×½ï¿½Æ®ï¿½ï¿½): ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 'ï¿½ì¼±ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½' ï¿½Üºï¿½ ï¿½Ô·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½î¾´ï¿½ï¿½.
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
         Vector2 keyboardInput = new Vector2(-horizontal, -vertical);
@@ -72,7 +73,7 @@ public class EnemyMovement : MonoBehaviour
             SetMoveInput(Vector2.zero); 
         }
 
-        // Å°º¸µå Á¡ÇÁ ÀÔ·Â(Å×½ºÆ®¿ë)
+        // Å°ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô·ï¿½(ï¿½×½ï¿½Æ®ï¿½ï¿½)
         if (Input.GetKeyDown(KeyCode.Space))
         {
             Jump();
@@ -106,5 +107,11 @@ public class EnemyMovement : MonoBehaviour
         float rayLength = col.bounds.extents.y + groundCheckDistance;
         Debug.DrawRay(origin, Vector3.down * rayLength, Color.red);
         return Physics.Raycast(origin, Vector3.down, rayLength, groundLayer);
+    }
+
+    private void PlayJumpSfx()
+    {
+        if (AudioManager.Instance == null) return;
+        AudioManager.Instance.PlaySFX("Jump");
     }
 }
