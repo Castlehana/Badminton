@@ -14,6 +14,8 @@ public class AchievementData
     public int streak; // 현재 연승
     public int highestStreak;   // 최고 연승
     // 계속 추가
+    public int overSwing;
+    public int underSwing;
 }
 
 public class SaveData
