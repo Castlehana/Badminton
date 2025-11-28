@@ -137,7 +137,7 @@ public class EnemyShooting : MonoBehaviour
             return;
         }
 
-        LaunchToAll(0f, -5f, 30f, "�ㅻℓ��!!!!!!!!!!!!", targets);
+        LaunchToAll(0f, -5f, 26.5f, "�ㅻℓ��!!!!!!!!!!!!", targets);
     }
 
 

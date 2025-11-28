@@ -863,7 +863,7 @@ MonoBehaviour:
   shuttleTag: Shuttlecock
   baseRotationX: 10
   thresholdY: 15
-  rotationPerUnitY: 2
+  rotationPerUnitY: 2.5
   followTarget: {fileID: 102621475}
   followOffset: {x: 0, y: 5, z: -10}
   followSmoothTime: 0.3
@@ -1192,7 +1192,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 404086918}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.703432, y: -12.12, z: -34.65}
+  m_LocalPosition: {x: 3.703432, y: -12.12, z: -36}
   m_LocalScale: {x: 40.8, y: -3.2, z: 0.25}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3644,8 +3644,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bcf04c23c7c70df469fdfa9fc47855bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  freezeImage: {fileID: 0}
-  holdDuration: 0.5
+  freezeImage: {fileID: 1059084936}
+  holdDuration: 1
   fadeDuration: 0.5
 --- !u!4 &1128086893
 Transform:
@@ -3685,6 +3685,22 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3296842507492962105, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3296842507729115368, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.67
+      objectReference: {fileID: 0}
+    - target: {fileID: 3296842508214999912, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3296842508747126582, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.09
+      objectReference: {fileID: 0}
     - target: {fileID: 3296842508979995979, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
       propertyPath: m_RootOrder
       value: 30
@@ -3695,11 +3711,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3296842508979995979, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4.05
+      value: 2.27
       objectReference: {fileID: 0}
     - target: {fileID: 3296842508979995979, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -14.12
+      value: -7.5
       objectReference: {fileID: 0}
     - target: {fileID: 3296842508979995979, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
       propertyPath: m_LocalRotation.w
@@ -5779,7 +5795,7 @@ MonoBehaviour:
   Turn: 0
   myScore: 0
   aiScore: 0
-  gamePoint: 50
+  gamePoint: 15
   shuttlePrefab: {fileID: 5145767458432394284, guid: df635c130dc428b43b7055c74abab7cb, type: 3}
   playerText: {fileID: 67461731}
   opponentText: {fileID: 1146404393}

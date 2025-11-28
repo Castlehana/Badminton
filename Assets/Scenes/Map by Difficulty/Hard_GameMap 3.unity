@@ -2798,7 +2798,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &672419435
 Transform:
   m_ObjectHideFlags: 0
@@ -3562,7 +3562,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &838792087
 Transform:
   m_ObjectHideFlags: 0
@@ -3681,7 +3681,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 847663825}
   m_LocalRotation: {x: -0, y: -1, z: -0, w: 0}
-  m_LocalPosition: {x: 0, y: 1.1, z: 1.211}
+  m_LocalPosition: {x: 0, y: 1.1, z: 1.73}
   m_LocalScale: {x: 2.64, y: 1.34, z: 1.66}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3728,7 +3728,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 894253581}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d6ae3319f1384354e920bda0fd41251a, type: 3}
   m_Name: 
@@ -4299,8 +4299,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bcf04c23c7c70df469fdfa9fc47855bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  freezeImage: {fileID: 0}
-  holdDuration: 0.5
+  freezeImage: {fileID: 1615837591}
+  holdDuration: 1
   fadeDuration: 0.5
 --- !u!4 &1029476145
 Transform:
@@ -4735,8 +4735,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 91fbbeed066139d4e8ec5965a9d9d1e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  overZone: {fileID: 0}
-  underZone: {fileID: 0}
+  overZone: {fileID: 1067341320}
+  underZone: {fileID: 847663826}
   shuttlecocksInRange: []
   testYaw: 0
   testPitch: 45
@@ -4755,7 +4755,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 20
-  jumpForce: 8
+  jumpForce: 9
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -6545,7 +6545,7 @@ MonoBehaviour:
   Turn: 0
   myScore: 0
   aiScore: 0
-  gamePoint: 5
+  gamePoint: 15
   shuttlePrefab: {fileID: 5145767458432394284, guid: df635c130dc428b43b7055c74abab7cb, type: 3}
   playerText: {fileID: 169511970}
   opponentText: {fileID: 169511969}
@@ -6659,8 +6659,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1783469139}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.703432, y: -12.12, z: -33.22}
-  m_LocalScale: {x: 40.8, y: 4.1, z: 0.25}
+  m_LocalPosition: {x: 3.703432, y: -12.12, z: -39.07}
+  m_LocalScale: {x: 40.8, y: 18.59, z: 0.25}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 101546873}
@@ -7023,7 +7023,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2014179853
 Transform:
   m_ObjectHideFlags: 0

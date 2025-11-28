@@ -65,7 +65,7 @@ public class Shuttlecock : MonoBehaviour
     void Start()
     {
 
-        lastSign = 0;
+        lastSign = transform.position.z >= 0f ? 1 : -1;
 
         rallyManager = FindObjectOfType<RallyManager>();
 
@@ -114,13 +114,16 @@ public class Shuttlecock : MonoBehaviour
 
     public void Launch(float yaw, float pitch, float force)
     {
+        UnityEngine.Debug.Log("런치됨ㅋ");
         //if (shootingLock) return; // 잠금 상태면 실행 안 함
 
         // 현재 위치의 z 부호 계산
         int currentSign = transform.position.z >= 0 ? 1 : -1;
 
+
+
         // 이전에 한 번이라도 발사했고, 그때와 같은 쪽이라면 발사 금지
-        if (lastSign != 0 && currentSign == lastSign)
+        if (currentSign == lastSign)
         {
             UnityEngine.Debug.Log("더블 슈팅 금지");
             return;

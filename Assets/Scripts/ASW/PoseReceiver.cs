@@ -207,7 +207,7 @@ public class PoseReceiver : MonoBehaviour
 
             case (int)SwingClass.Hairpin:
                 Debug.Log($"➡ Hairpin (conf={confidence:F2})");
-                playerShooting.Hairpin();
+                playerShooting.HairpinSwing();
                 break;
 
             default:

@@ -8,7 +8,7 @@ public class AutoMovement : MonoBehaviour
     // player 이동 속도
     float moveSpeed = 10f;
 
-    float jumpForce = 6f;
+    public float jumpForce = 9f;
 
     // 충돌 컴포넌트
     Rigidbody rb;
@@ -79,7 +79,7 @@ public class AutoMovement : MonoBehaviour
         {
             destPos = goalObj.transform.position;
             destPos.y = myPos.y;
-            destPos.z += 1.5f;
+            //destPos.z += 1.5f;
         }
         centerPos.x = 0.0f;
         centerPos.y = myPos.y;

@@ -1193,6 +1193,14 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 7209983718929320937, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7209983720422255853, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7209983720425535571, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
       propertyPath: m_Name
       value: Player
@@ -1251,6 +1259,28 @@ PrefabInstance:
       objectReference: {fileID: 1706466912}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+--- !u!114 &465197700 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7209983720425535598, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+  m_PrefabInstance: {fileID: 465197699}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f586d99978307744a4fd873c8e8c0ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &465197701 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7209983720425535595, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+  m_PrefabInstance: {fileID: 465197699}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e6bfd88819f61f4284118c82ec61c3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &471913907
 GameObject:
   m_ObjectHideFlags: 0
@@ -4360,8 +4390,8 @@ MonoBehaviour:
   confidence: 0
   jumpDetected: 0
   lastJumpSpeed: 0
-  playerShooting: {fileID: 0}
-  autoMovement: {fileID: 0}
+  playerShooting: {fileID: 465197701}
+  autoMovement: {fileID: 465197700}
 --- !u!4 &1860174911 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0884edc1b9a45d24cb2d31ceb5d2bd53, type: 3}

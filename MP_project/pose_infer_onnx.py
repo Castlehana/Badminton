@@ -51,7 +51,7 @@ EMA_ALPHA  = 0.20
 DT_MIN, DT_MAX = 1/90.0, 1/20.0
 
 PEAK_WIN        = 5
-V_MIN_WRIST     = 0.50
+V_MIN_WRIST     = 0.60
 V_MIN_ELBOW     = 0.00
 PROM_MIN        = 0.05
 VIS_THR         = 0.60

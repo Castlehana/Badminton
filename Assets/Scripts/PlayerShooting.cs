@@ -67,35 +67,27 @@ public class PlayerShooting : MonoBehaviour
             float t = Mathf.InverseLerp(-10f, -5f, playerX);
             yaw = UnityEngine.Random.Range(0f, Mathf.Lerp(20f, 0f, t));
         }
-
+        UnityEngine.Debug.Log("런치투올 ㅋ");
         foreach (Shuttlecock sc in targets)
         {
+            UnityEngine.Debug.Log("포이치드렁옴");
             if (sc != null)
             {
+                UnityEngine.Debug.Log("이프 들어옴");
                 sc.Launch(yaw, pitch, force);
                 Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}) → {sc.name}");
             }
         }
-        //foreach (Shuttlecock sc in shuttlecocksInRange)
-        //{
-        //    if (sc != null)
-        //    {
-        //        sc.Launch(yaw, pitch, force);
-        //        Debug.Log($"{shotName} 발사됨 (Yaw: {yaw}) → {sc.name}");
-        //    }
-        //}
-
-        //shuttlecocksInRange.Clear();
     }
 
-    public void Clear() => LaunchToAll(0f, 180-45f, 35f, "클리어", shuttlecocksInRange);
+    public void Clear() => LaunchToAll(0f, 180-45f, 30f, "클리어", shuttlecocksInRange);
     public void Drop() => LaunchToAll(0f, 180 - 50f, 15f, "드롭", shuttlecocksInRange);
     public void Smash() => LaunchToAll(0f, 180+5f, 30f, "스매시", shuttlecocksInRange);
     //public void Push() => LaunchToAll(0f, -40f, 40f, "푸시", shuttlecocksInRange);
-    public void Hairpin() => LaunchToAll(0f, 180 - 35f, 13f, "헤어핀", shuttlecocksInRange);
+    public void Hairpin() => LaunchToAll(0f, 180 - 38f, 18f, "헤어핀", shuttlecocksInRange);
     public void Drive() => LaunchToAll(0f, 180 - 10f, 25f, "드라이브", shuttlecocksInRange);
     public void Serve() => LaunchToAll(0f, 180 - 45f, 20f, "서비스", shuttlecocksInRange);
-    public void Under() => LaunchToAll(0f, 180 - 30f, 20f, "언더", shuttlecocksInRange);
+    public void Under() => LaunchToAll(0f, 180 - 30f, 23f, "언더", shuttlecocksInRange);
 
     public void DriveSwing()
     {
@@ -141,22 +133,6 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
-    //public void OverStrong()
-    //{
-    //    var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
-    //    if (targets.Count == 0) return;
-
-    //    // 점프 중 발동 시 스매시로 구분
-    //    if (player.isJumping)
-    //    {
-    //        LaunchToAll(0f, 180 - 0f, 30f, "Smash!!!", targets);
-    //    }
-    //    else
-    //    {
-    //        LaunchToAll(0f, 180 - 35f, 30f, "OverStrong", targets);
-    //    }
-    //}
-
     
     public void DropSwing() // OverWeak -> DropSwing
     {
@@ -200,8 +176,10 @@ public class PlayerShooting : MonoBehaviour
         }
 
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
-        if (targets.Count == 0) return;
-
+        if (targets.Count == 0)
+        {
+            return;
+        }
         Under();
         var mgr = SaveManager.Instance;
         if (mgr != null && mgr.Current != null)
@@ -210,32 +188,6 @@ public class PlayerShooting : MonoBehaviour
             mgr.Save();
         }
     }
-
-    //public void UnderSwing()
-    //{
-    //    // 점프중엔 언더로 못침
-    //    if (player.isJumping) return;
-
-    //    // 서브의 경우
-    //    if (rallyManager.State == RallyState.Ready)
-    //    {
-    //        UnityEngine.Debug.Log("서브!!");
-    //        GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
-    //        Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
-
-    //        shuttle.Launch(0f, 180f - 45f, 15f);
-
-    //        rallyManager.State = RallyState.Rallying;
-
-    //        return;
-    //    }
-
-    //    var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
-    //    if (targets.Count == 0) return;
-
-    //    LaunchToAll(0f, 180f - 50f, 35f, "UnderStrong", targets);
-    //}
-
 
     public void HairpinSwing() //UnderWeak -> HairpinSwing
     {
@@ -307,11 +259,10 @@ public class PlayerShooting : MonoBehaviour
     }
     void OnTriggerExit(Collider other)
     {
+        if (!other.CompareTag("SwingZone")) return;
+
         Shuttlecock sc = other.GetComponent<Shuttlecock>();
         if (sc != null && shuttlecocksInRange.Contains(sc))
-        {
             shuttlecocksInRange.Remove(sc);
-            //Debug.Log($"셔틀콕 나감: {sc.name} 트리거 밖으로 나감");
-        }
     }
 }

@@ -484,6 +484,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1f586d99978307744a4fd873c8e8c0ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  jumpForce: 9
   rallyManager: {fileID: 0}
   groundCheckDistance: 3
   groundLayer:

@@ -138,7 +138,7 @@ public class RallyManager : MonoBehaviour
         GameObject newShuttle = Instantiate(shuttlePrefab, aiServePoint, Quaternion.identity);
         Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
 
-        shuttle.Launch(0f, 45f, 20f);
+        shuttle.Launch(0f, 45f, 15f);
 
         State = RallyState.Rallying;
 
