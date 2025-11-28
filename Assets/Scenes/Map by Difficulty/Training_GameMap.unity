@@ -1244,7 +1244,7 @@ PrefabInstance:
     - target: {fileID: 7209983720425535595, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
       propertyPath: rallyManager
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1706466912}
     - target: {fileID: 7209983720425535598, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
       propertyPath: rallyManager
       value: 

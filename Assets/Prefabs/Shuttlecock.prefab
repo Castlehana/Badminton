@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 5145767458432394285}
   - component: {fileID: -5784590473075742718}
   - component: {fileID: 708235538798404717}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Shuttlecock
   m_TagString: Shuttlecock
   m_Icon: {fileID: 0}
@@ -264,6 +264,10 @@ PrefabInstance:
     - target: {fileID: 1327691812583296, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
       propertyPath: m_Name
       value: Shuttlecock
+      objectReference: {fileID: 0}
+    - target: {fileID: 1327691812583296, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
+      propertyPath: m_Layer
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 4444379076051230, guid: 43ee2897645472c4e95672f710e6cbe6, type: 3}
       propertyPath: m_RootOrder

@@ -2745,7 +2745,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1350338129}
         m_TargetAssemblyTypeName: MenuSceneLoader, Assembly-CSharp
         m_MethodName: LoadSelectMode
         m_Mode: 1

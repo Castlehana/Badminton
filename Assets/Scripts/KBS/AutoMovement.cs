@@ -79,6 +79,7 @@ public class AutoMovement : MonoBehaviour
         {
             destPos = goalObj.transform.position;
             destPos.y = myPos.y;
+            destPos.z += 1.5f;
         }
         centerPos.x = 0.0f;
         centerPos.y = myPos.y;
