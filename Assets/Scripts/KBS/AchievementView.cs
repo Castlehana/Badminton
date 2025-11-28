@@ -9,6 +9,9 @@ public class AchievementView : MonoBehaviour
     public TMP_Text losesText;
     public TMP_Text streakText;
 
+    public TMP_Text overText;
+    public TMP_Text underText;
+
 
     void OnEnable()
     {
@@ -18,5 +21,7 @@ public class AchievementView : MonoBehaviour
         winsText.text = cur.achv.totalWins.ToString();
         losesText.text = cur.achv.totalLoses.ToString();
         streakText.text = cur.achv.highestStreak.ToString();
+        overText.text = cur.achv.overSwing.ToString();
+        underText.text = cur.achv.underSwing.ToString();
     }
 }

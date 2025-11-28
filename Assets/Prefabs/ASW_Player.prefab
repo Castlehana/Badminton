@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1865355746129423860}
   - component: {fileID: 1752930467150749668}
   - component: {fileID: 1865355746129423861}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: OverSwingZone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -72,7 +72,7 @@ GameObject:
   - component: {fileID: 145278373065123046}
   - component: {fileID: 1297333753807580192}
   - component: {fileID: 1297333753807580193}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: UnderSwingZone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -365,7 +365,7 @@ GameObject:
   - component: {fileID: 7209983720425535573}
   - component: {fileID: 7209983720425535598}
   - component: {fileID: 7209983720425535595}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: ASW_Player
   m_TagString: Player
   m_Icon: {fileID: 0}

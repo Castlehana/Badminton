@@ -111,6 +111,12 @@ public class PlayerShooting : MonoBehaviour
         {
             Drive();
         }
+        var mgr = SaveManager.Instance;
+        if (mgr != null && mgr.Current != null)
+        {
+            mgr.Current.achv.overSwing++;
+            mgr.Save();
+        }
     }
 
     public void ClearSwing() // OverStrong -> ClearSwing
@@ -126,6 +132,12 @@ public class PlayerShooting : MonoBehaviour
         else
         {
             Clear();
+        }
+        var mgr = SaveManager.Instance;
+        if (mgr != null && mgr.Current != null)
+        {
+            mgr.Current.achv.overSwing++;
+            mgr.Save();
         }
     }
 
@@ -152,6 +164,12 @@ public class PlayerShooting : MonoBehaviour
         if (targets.Count == 0) return;
 
         Drop();
+        var mgr = SaveManager.Instance;
+        if (mgr != null && mgr.Current != null)
+        {
+            mgr.Current.achv.overSwing++;
+            mgr.Save();
+        }
     }
 
     //public void OverWeak()
@@ -185,6 +203,12 @@ public class PlayerShooting : MonoBehaviour
         if (targets.Count == 0) return;
 
         Under();
+        var mgr = SaveManager.Instance;
+        if (mgr != null && mgr.Current != null)
+        {
+            mgr.Current.achv.underSwing++;
+            mgr.Save();
+        }
     }
 
     //public void UnderSwing()
@@ -236,6 +260,12 @@ public class PlayerShooting : MonoBehaviour
         if (targets.Count == 0) return;
 
         Hairpin();
+        var mgr = SaveManager.Instance;
+        if (mgr != null && mgr.Current != null)
+        {
+            mgr.Current.achv.underSwing++;
+            mgr.Save();
+        }
     }
 
     //public void UnderWeak()

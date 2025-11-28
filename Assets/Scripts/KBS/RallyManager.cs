@@ -35,6 +35,9 @@ public class RallyManager : MonoBehaviour
     public TextMeshProUGUI playerText;
     public TextMeshProUGUI opponentText;
 
+    public TextMeshProUGUI AODplayerText;
+    public TextMeshProUGUI AODopponentText;
+
     private bool isResetting = false;
     private bool isAiServing = false;
 
@@ -159,6 +162,13 @@ public class RallyManager : MonoBehaviour
         int prevMyScore = myScore;
         int prevAiScore = aiScore;
 
+        if (Mode == ModeState.Training)
+        {
+            StartCoroutine(ReturnToReady());
+            return;
+        }
+
+
         // 득점 판정 처리
         if (underNet)
         {
@@ -270,8 +280,12 @@ public class RallyManager : MonoBehaviour
     {
         if (playerText)
             playerText.text =  player.ToString();
+        if (AODplayerText)
+            AODplayerText.text = player.ToString();
         if (opponentText)
             opponentText.text = opponent.ToString();
+        if (AODopponentText)
+            AODopponentText.text = opponent.ToString();
     }
     public void ResetPosition()
     {
@@ -341,10 +355,15 @@ public class RallyManager : MonoBehaviour
         // 3) 서브! 텍스트 표시
         if (serveText != null)
         {
-            serveText.gameObject.SetActive(true);
-            serveText.text = "Start!";
-            yield return new WaitForSecondsRealtime(serveTextDuration);
-            serveText.gameObject.SetActive(false);
+            if (Mathf.Abs(myScore - aiScore) >= 2 && ((myScore >= gamePoint) || (aiScore >= gamePoint)))
+            { }
+            else
+            {
+                serveText.gameObject.SetActive(true);
+                serveText.text = "Start!";
+                yield return new WaitForSecondsRealtime(serveTextDuration);
+                serveText.gameObject.SetActive(false);
+            }
         }
 
         screenFreeze.PlayFreeze();
