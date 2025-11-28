@@ -531,10 +531,13 @@ def main():
     except:
         ready_idx = None
 
-    prev_nose_y = None
-    last_jump_ts = -1e9
+    # 점프 관련 상태 (어깨 기반)
+    prev_shoulder_y   = None      # ← 이걸로 사용
+    last_jump_ts      = -1e9
     last_jump_send_ts = -1e9
-    jump_ref_buffer = deque(maxlen=30)  # 코-어깨 baseline h 저장용
+    jump_ref_buffer   = deque(maxlen=30)
+
+
     
     
     while cap.isOpened():
@@ -567,22 +570,34 @@ def main():
         if res.pose_landmarks:
             lm = res.pose_landmarks.landmark
 
-            # 점프 감지
-            nose_y = float(lm[0].y)
-            if prev_nose_y is not None:
-                dy = nose_y - prev_nose_y
+            # 점프 감지 (양 어깨 평균 y 사용: 11=L-Shoulder, 12=R-Shoulder)
+            r_sh_y = float(lm[12].y)
+            l_sh_y = float(lm[11].y)
+            shoulder_y = float(lm[12].y)   # r_sh_y만 사용
+
+            # (선택) baseline 기록하고 싶으면 이렇게 사용 가능
+            # jump_ref_buffer.append(shoulder_y)
+
+            if prev_shoulder_y is not None:
+                dy = shoulder_y - prev_shoulder_y
                 if dt_ema > 0:
                     dydt = dy / dt_ema
                     if (-dydt) >= args.jump_thr:
                         last_jump_ts = t_now
                         if (t_now - last_jump_send_ts) >= args.jump_send_cooldown:
-                            pkt = {"jump": True, "speed": round(-dydt, 4), "ts": round(t_now, 3)}
+                            pkt = {
+                                "jump": True,
+                                "speed": round(-dydt, 4),
+                                "ts": round(t_now, 3)
+                            }
                             try:
                                 sock.sendto(json.dumps(pkt).encode(), (args.ip, args.port))
                             except:
                                 pass
                             last_jump_send_ts = t_now
-            prev_nose_y = nose_y
+
+            prev_shoulder_y = shoulder_y
+
 
             feats, diag = fb.push_and_get(lm, dt=dt_for_model)
 
