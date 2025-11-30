@@ -321,7 +321,7 @@ public class RallyManager : MonoBehaviour
 
     public bool ScoreCheck()
     {
-        if (Mathf.Abs(myScore - aiScore) >= 2 && myScore >= gamePoint)
+        if (Mathf.Abs(myScore - aiScore) >= 2 && myScore >= gamePoint && myScore >= aiScore)
         {
             // achv 수정
             var mgr = SaveManager.Instance;
@@ -338,7 +338,7 @@ public class RallyManager : MonoBehaviour
             menuSceneLoader.LoadWinScene();
             return true;
         }
-        else if (Mathf.Abs(myScore - aiScore) >= 2 && aiScore >= gamePoint)
+        else if (Mathf.Abs(myScore - aiScore) >= 2 && aiScore >= gamePoint && myScore <= aiScore)
         {
             // achv 수정
             var mgr = SaveManager.Instance;
