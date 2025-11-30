@@ -32,6 +32,8 @@ public class RallyManager : MonoBehaviour
     public GameObject shuttlePrefab;
     Vector3 aiServePoint = new Vector3(0f, 3f, -7.5f);
 
+    public Animator animator;
+
     public TextMeshProUGUI playerText;
     public TextMeshProUGUI opponentText;
 
@@ -165,6 +167,7 @@ public class RallyManager : MonoBehaviour
         GameObject newShuttle = Instantiate(shuttlePrefab, aiServePoint, Quaternion.identity);
         Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
 
+        animator.Play("Armature|Under", 0, 0f);
         shuttle.Launch(0f, 45f, 15f);
 
         State = RallyState.Rallying;

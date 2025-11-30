@@ -920,7 +920,8 @@ PrefabInstance:
       propertyPath: rallyManager
       value: 
       objectReference: {fileID: 1706466912}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 7756720397915862544, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
 --- !u!114 &102621473 stripped
 MonoBehaviour:
@@ -1454,6 +1455,10 @@ PrefabInstance:
       propertyPath: m_BrainParameters.m_ActionSpec.BranchSizes.Array.data[0]
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 2698427484246447091, guid: 874c923c73424a14b94b9f5f21d6d3ae, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 1985936701}
     - target: {fileID: 2698427484246447092, guid: 874c923c73424a14b94b9f5f21d6d3ae, type: 3}
       propertyPath: DecisionPeriod
       value: 20
@@ -11679,6 +11684,7 @@ MonoBehaviour:
   aiScore: 0
   gamePoint: 5
   shuttlePrefab: {fileID: 5145767458432394284, guid: df635c130dc428b43b7055c74abab7cb, type: 3}
+  animator: {fileID: 1985936701}
   playerText: {fileID: 1285173338}
   opponentText: {fileID: 1152346814}
   AODplayerText: {fileID: 1780219330}
@@ -13436,6 +13442,11 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!95 &1985936701 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 2383952654076108185, guid: 874c923c73424a14b94b9f5f21d6d3ae, type: 3}
+  m_PrefabInstance: {fileID: 185435902}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1995446068
 PrefabInstance:
   m_ObjectHideFlags: 0

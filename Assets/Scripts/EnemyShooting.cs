@@ -18,6 +18,9 @@ public class EnemyShooting : MonoBehaviour
     [Header("Shot Variation")]
     public float yawJitterDeg = 0f; // 0�대㈃ 怨좎젙 媛곷룄, >0�대㈃ 짹踰붿쐞濡� �쎄컙�� 遺꾩궛
 
+
+    public Animator animator;
+
     void Update()
     {
         // 1~4 �レ옄 �� �낅젰�� �곕Ⅸ 4媛�吏� �ㅼ쐷
@@ -106,6 +109,7 @@ public class EnemyShooting : MonoBehaviour
     {
         var targets = overZone != null ? new List<Shuttlecock>(overZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Clear", 0, 0f);
         LaunchToAll(0f, 45f, 35f, "�대━��", targets);
     }
 
@@ -113,6 +117,7 @@ public class EnemyShooting : MonoBehaviour
     {
         var targets = overZone != null ? new List<Shuttlecock>(overZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Clear", 0, 0f);
         LaunchToAll(0f, 50f, 15f, "�쒕∼", targets);
     }
 
@@ -121,6 +126,7 @@ public class EnemyShooting : MonoBehaviour
     {
         var targets = underZone != null ? new List<Shuttlecock>(underZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Hairpin", 0, 0f);
         LaunchToAll(0f, 35f, 13f, "�ㅼ뼱��", targets);
     }
 
@@ -128,6 +134,7 @@ public class EnemyShooting : MonoBehaviour
     {
         var targets = underZone != null ? new List<Shuttlecock>(underZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Drive", 0, 0f);
         LaunchToAll(0f, 10f, 25f, "�쒕씪�대툕", targets);
     }
 
@@ -135,6 +142,7 @@ public class EnemyShooting : MonoBehaviour
     {
         var targets = underZone != null ? new List<Shuttlecock>(underZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Under", 0, 0f);
         LaunchToAll(0f, 30f, 20f, "�몃뜑", targets);
     }
 
@@ -148,6 +156,7 @@ public class EnemyShooting : MonoBehaviour
             return;
         }
 
+        animator.Play("Armature|Clear", 0, 0f);
         LaunchToAll(0f, -5f, 26.5f, "�ㅻℓ��!!!!!!!!!!!!", targets, true);
     }
 

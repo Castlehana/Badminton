@@ -8064,6 +8064,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Enemy_middle
       objectReference: {fileID: 0}
+    - target: {fileID: 3296842508979996019, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 1151930326}
     - target: {fileID: 3296842508979996021, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
       propertyPath: rl
       value: 
@@ -8077,6 +8081,11 @@ PrefabInstance:
 --- !u!1 &1151930325 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6472852959416207447, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
+  m_PrefabInstance: {fileID: 1151930324}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &1151930326 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 4698807124467426650, guid: b5d1b70b433f85548b94f95c44a07ef1, type: 3}
   m_PrefabInstance: {fileID: 1151930324}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1157884316
@@ -12131,6 +12140,7 @@ MonoBehaviour:
   aiScore: 0
   gamePoint: 5
   shuttlePrefab: {fileID: 5145767458432394284, guid: df635c130dc428b43b7055c74abab7cb, type: 3}
+  animator: {fileID: 1151930326}
   playerText: {fileID: 67461731}
   opponentText: {fileID: 1146404393}
   AODplayerText: {fileID: 973618536}

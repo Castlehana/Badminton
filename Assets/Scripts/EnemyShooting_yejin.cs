@@ -18,6 +18,9 @@ public class EnemyShooting_yejin : MonoBehaviour
     [Header("Shot Variation")]
     public float yawJitterDeg = 0f; // 0이면 고정 각도, >0이면 ±범위로 약간의 분산
 
+    public Animator animator;
+
+
     void Update()
     {
         // 1~4 숫자 키 입력에 따른 4가지 스윙
@@ -103,6 +106,7 @@ public class EnemyShooting_yejin : MonoBehaviour
     {
         var targets = overZone != null ? new List<Shuttlecock>(overZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Idle", 0, 0f);
         LaunchToAll(0f, 45f, 35f, "클리어", targets);
     }
     
@@ -110,6 +114,7 @@ public class EnemyShooting_yejin : MonoBehaviour
     {
         var targets = overZone != null ? new List<Shuttlecock>(overZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Idle", 0, 0f);
         LaunchToAll(0f, 50f, 15f, "드롭", targets);
     }
     
@@ -117,6 +122,7 @@ public class EnemyShooting_yejin : MonoBehaviour
     {
         var targets = overZone != null ? new List<Shuttlecock>(overZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Drive", 0, 0f);
         LaunchToAll(0f, 10f, 25f, "드라이브", targets);
     }
     
@@ -126,6 +132,7 @@ public class EnemyShooting_yejin : MonoBehaviour
     {
         var targets = underZone != null ? new List<Shuttlecock>(underZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Hairpin", 0, 0f);
         LaunchToAll(0f, 35f, 13f, "헤어핀", targets);
     }
     
@@ -133,6 +140,7 @@ public class EnemyShooting_yejin : MonoBehaviour
     {
         var targets = underZone != null ? new List<Shuttlecock>(underZone.GetShuttlecocks()) : new List<Shuttlecock>();
         if (targets.Count == 0) return;
+        animator.Play("Armature|Under", 0, 0f);
         LaunchToAll(0f, 30f, 20f, "언더", targets);
     }
 
@@ -146,6 +154,7 @@ public class EnemyShooting_yejin : MonoBehaviour
             return;
         }
 
+        animator.Play("Armature|Idle", 0, 0f);
         LaunchToAll(0f, -5f, 30f, "스매시!!!!!!!!!!!!", targets, true);
     }
 
