@@ -21,6 +21,8 @@ public class PlayerShooting : MonoBehaviour
     public Transform spawnPoint;
     public AutoMovement player;
 
+    public Animator animator;
+
     void Update()
     {
         ////1~4 숫자 키 입력에 따른 4가지 스윙 재 구성
@@ -109,10 +111,12 @@ public class PlayerShooting : MonoBehaviour
         // 점프 중 발동 시 스매시로 구분
         if (player.isJumping)
         {
+            animator.Play("Armature|Clear", 0, 0f);
             Smash();
         }
         else
         {
+            animator.Play("Armature|Drive", 0, 0f);
             Drive();
         }
         var mgr = SaveManager.Instance;
@@ -131,10 +135,12 @@ public class PlayerShooting : MonoBehaviour
         // 점프 중 발동 시 스매시로 구분
         if (player.isJumping)
         {
+            animator.Play("Armature|Clear", 0, 0f);
             Smash();
         }
         else
         {
+            animator.Play("Armature|Clear", 0, 0f);
             Clear();
         }
         var mgr = SaveManager.Instance;
@@ -151,6 +157,7 @@ public class PlayerShooting : MonoBehaviour
         var targets = new List<Shuttlecock>(overZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
 
+        animator.Play("Armature|Clear", 0, 0f);
         Drop();
         var mgr = SaveManager.Instance;
         if (mgr != null && mgr.Current != null)
@@ -176,6 +183,8 @@ public class PlayerShooting : MonoBehaviour
         // 서브의 경우
         if ((rallyManager.State == RallyState.Ready) && (rallyManager.Turn == ServeTurn.MyTurn))
         {
+            animator.Play("Armature|Under", 0, 0f);
+
             UnityEngine.Debug.Log("서브!!");
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
@@ -192,6 +201,7 @@ public class PlayerShooting : MonoBehaviour
         {
             return;
         }
+        animator.Play("Armature|Under", 0, 0f);
         Under();
         var mgr = SaveManager.Instance;
         if (mgr != null && mgr.Current != null)
@@ -209,6 +219,7 @@ public class PlayerShooting : MonoBehaviour
         // 서브의 경우
         if ((rallyManager.State == RallyState.Ready) && (rallyManager.Turn == ServeTurn.MyTurn))
         {
+            animator.Play("Armature|Under", 0, 0f);
             rallyManager.PlayServeSfx();
             GameObject newShuttle = Instantiate(shuttlePrefab, spawnPoint.position, Quaternion.identity);
             Shuttlecock shuttle = newShuttle.GetComponent<Shuttlecock>();
@@ -221,7 +232,7 @@ public class PlayerShooting : MonoBehaviour
 
         var targets = new List<Shuttlecock>(underZone.GetShuttlecocks()); // 복사
         if (targets.Count == 0) return;
-
+        animator.Play("Armature|Hairpin", 0, 0f);
         Hairpin();
         var mgr = SaveManager.Instance;
         if (mgr != null && mgr.Current != null)

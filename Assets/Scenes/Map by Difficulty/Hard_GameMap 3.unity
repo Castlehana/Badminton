@@ -904,6 +904,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7209983720425535595, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 239369495}
+    - target: {fileID: 7209983720425535595, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
       propertyPath: rallyManager
       value: 
       objectReference: {fileID: 1706466912}
@@ -911,6 +915,18 @@ PrefabInstance:
       propertyPath: rallyManager
       value: 
       objectReference: {fileID: 1706466912}
+    - target: {fileID: 7850109734928151784, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7850109734928151784, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7850109734928151784, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
 --- !u!114 &102621473 stripped
@@ -1896,6 +1912,11 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!95 &239369495 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 6312378083332554660, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+  m_PrefabInstance: {fileID: 102621472}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &239557465
 PrefabInstance:
   m_ObjectHideFlags: 0

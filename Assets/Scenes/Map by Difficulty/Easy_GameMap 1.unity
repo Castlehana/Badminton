@@ -893,6 +893,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7209983720425535595, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 1298262332}
+    - target: {fileID: 7209983720425535595, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
       propertyPath: rallyManager
       value: 
       objectReference: {fileID: 1706466912}
@@ -8928,6 +8932,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!95 &1298262332 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 6312378083332554660, guid: b07d6960e0f7d9943bed95ea76653a56, type: 3}
+  m_PrefabInstance: {fileID: 102621472}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1316713641
 PrefabInstance:
   m_ObjectHideFlags: 0
