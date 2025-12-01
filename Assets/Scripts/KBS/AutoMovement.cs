@@ -104,5 +104,6 @@ public class AutoMovement : MonoBehaviour
     {
         if (AudioManager.Instance == null) return;
         AudioManager.Instance.PlaySFX("Jump");
+        Debug.Log("점프 소리 났슨!!!!");
     }
 }

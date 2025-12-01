@@ -12157,7 +12157,7 @@ MonoBehaviour:
   screenFreeze: {fileID: 1128086892}
   EnemyServe: {fileID: 1151930325}
   PlayerServe: {fileID: 102621476}
-  sfxSource: {fileID: 0}
+  sfxSource: {fileID: 1709348327}
   serveClip: {fileID: 8300000, guid: 4be8433037a25974c9752a3126793b58, type: 3}
   serveVolume: 1
   winClip: {fileID: 8300000, guid: e609085816587f84dac3ebca0564b67b, type: 3}
@@ -12241,6 +12241,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 2102775146522268884, guid: 480f39d1342ac8b4d97b7ee06b16427b, type: 3}
   m_PrefabInstance: {fileID: 1707750103}
+  m_PrefabAsset: {fileID: 0}
+--- !u!82 &1709348327 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 5824145210807117984, guid: f2905575fc70989458ef120c4ccf8ddf, type: 3}
+  m_PrefabInstance: {fileID: 1878324691}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1716944839
 PrefabInstance:

@@ -9518,12 +9518,15 @@ MonoBehaviour:
   sfxClips:
   - key: Shuttle_Hit
     clip: {fileID: 8300000, guid: 4be8433037a25974c9752a3126793b58, type: 3}
-    volume: 1
+    volume: 0.8
   - key: Shuttle_Smash
     clip: {fileID: 8300000, guid: b75bdd69ef235324aae0fdf557b65e8e, type: 3}
-    volume: 1
+    volume: 0.8
   - key: UI_Click
     clip: {fileID: 8300000, guid: 09754811c38a33c49bc216ee35e9aa3b, type: 3}
+    volume: 0.8
+  - key: Jump
+    clip: {fileID: 8300000, guid: 287401ea381afcf46bcfd1ce33ee9ee6, type: 3}
     volume: 1
 --- !u!4 &1405701426
 Transform:
@@ -11703,7 +11706,7 @@ MonoBehaviour:
   PlayerServe: {fileID: 459644631}
   sfxSource: {fileID: 0}
   serveClip: {fileID: 8300000, guid: 4be8433037a25974c9752a3126793b58, type: 3}
-  serveVolume: 1
+  serveVolume: 0.8
   winClip: {fileID: 8300000, guid: e609085816587f84dac3ebca0564b67b, type: 3}
   loseClip: {fileID: 8300000, guid: 5d12f01fe5d223f4b8da722bd3dd951d, type: 3}
   resultVolume: 1
